@@ -2,9 +2,33 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>My Rust + Webpack project!</title>
+    <title>Separo-rs</title>
   </head>
   <body>
+    <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
+    <div id="description">
+      <p align="justify" style="width: 75%; margin:0 auto; text-indent: 1em;">
+        Separoは<a href="https://github.com/gfngfn">@gfngfn</a>氏が考案した2人対戦ボードゲームです。
+        ルールはページ下部を参照してください。
+      </p>
+    </div>
+    <div id="game" style="text-align: center;">
+      <canvas id="separo-board"></canvas>
+    </div>
+    <div id="rule">
+      <p align="justify" style="width: 75%; margin:0 auto; text-indent: 1em;">
+        このゲームは、赤が先手、青が後手となり、順に「石」を置きながら「根」を張って、最終的に盤面をより多くの領域に分割した方が勝ちとなるゲームです。
+        ただし、分割された領域のうち、面積が格子の単位正方形1つ分以下となる領域はカウントされません。
+      </p>
+      <p align="justify" style="width: 75%; margin:0 auto; text-indent: 1em;">
+        手番は二つのフェーズから成ります。
+        第一フェーズでは、すでにある自分の石を選び、そこから斜めの方向にあるまだ石のない交点を選んで根を伸ばします。
+        第二フェーズでは、第一フェーズで置いた点から、第一フェーズで伸ばした線と135度の角度をなす縦横いずれかの線を選び、根を伸ばします。
+        第二フェーズで選んだ点にすでに自分の石がある場合、接続できます。
+        全てのフェーズで、すでにある自分の根と45度以下の角度で交わるような根は伸ばすことができません。
+        手がない場合、パスができます。両者ともに着手不可能になれば終了です。
+      </p>
+    </div>
     <script src="index.js"></script>
   </body>
 </html>
