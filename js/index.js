@@ -33,7 +33,8 @@ async function run() {
 
     var context = canvas.getContext('2d');
 
-    drawBoard(context, JSON.parse(separo.to_json()));
+    drawBoard(context, JSON.parse(separo.to_json()),
+              separo.score(0), separo.score(1));
 
     var halt = false; // for debugging
     canvas.addEventListener('click', function(e) {
@@ -49,18 +50,20 @@ async function run() {
         console.log("Next is RED's turn")
         separo = playerR.play(separo);
 
-        drawBoard(context, JSON.parse(separo.to_json()));
+        drawBoard(context, JSON.parse(separo.to_json()),
+                  separo.score(0), separo.score(1));
         await sleep(1000);
 
         console.log("Next is BLUE's turn")
         separo = playerB.play(separo);
 
-        drawBoard(context, JSON.parse(separo.to_json()));
+        drawBoard(context, JSON.parse(separo.to_json()),
+                  separo.score(0), separo.score(1));
         await sleep(1000);
     }
 }
 
-function drawBoard(context, board) {
+function drawBoard(context, board, red_score, blue_score) {
 
     const stones = board["stones"];
     const roots  = board["roots"];
@@ -68,6 +71,13 @@ function drawBoard(context, board) {
     context.clearRect(0, 0, canvas_width, canvas_height);
     context.fillStyle=board_color;
     context.fillRect(0, 0, canvas_width, canvas_height);
+
+    // show current score
+    context.fillStyle = "rgb(0,0,0)"
+    context.font      = "20px sans-serif"
+    context.textAlign = "center"
+    context.fillText(`Red: ${red_score} | Blue: ${blue_score}`,
+                     canvas_width / 2, 40.0);
 
     // draw grid
     context.strokeStyle=grid_color;
