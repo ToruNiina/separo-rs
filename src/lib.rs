@@ -18,6 +18,12 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 // XXX: Here we assume that the board is always square.
 
+macro_rules! console_log {
+    ($($arg:tt)*) => {
+        web_sys::console::log_1(&format!( $($arg)* ).into())
+    }
+}
+
 // Grid position. left-top: (0,0), right-bottom: (N,N).
 // We will never use 256x256 board. The max size would be 19x19. u8 is enough.
 #[wasm_bindgen]
@@ -130,7 +136,7 @@ impl Graph {
         let Move(stone1, stone2, stone3) = next_move;
 
         // first root
-        web_sys::console::log_1(&format!("graph.apply_move({:?}, {:?}) ...", stone1, stone2).into());
+        console_log!("graph.apply_move({:?}, {:?}) ...", stone1, stone2);
         let dx = stone2.0 - stone1.0;
         let dy = stone2.1 - stone1.1;
         match (dx, dy) {
@@ -157,12 +163,12 @@ impl Graph {
                 self.remove_edge(stone2, NodePos::S, stone2, NodePos::E);
             }
             _ => {
-                web_sys::console::log_1(&format!("invalid 1st root from {:?} to {:?}, dir ({}, {})", stone1, stone2, dx, dy).into());
+                console_log!("invalid 1st root from {:?} to {:?}, dir ({}, {})", stone1, stone2, dx, dy);
                 assert!(false);
             }
         }
-        web_sys::console::log_1(&format!("done.").into());
-        web_sys::console::log_1(&format!("graph.apply_move({:?}, {:?}) ... ", stone2, stone3).into());
+        console_log!("done.");
+        console_log!("graph.apply_move({:?}, {:?}) ... ", stone2, stone3);
         // second root
         let dx = stone3.0 - stone2.0;
         let dy = stone3.1 - stone2.1;
@@ -194,11 +200,11 @@ impl Graph {
                 }
             }
             _ => {
-                web_sys::console::log_1(&format!("invalid 2nd root from {:?} to {:?}, dir ({}, {})", stone2, stone3, dx, dy).into());
+                console_log!("invalid 2nd root from {:?} to {:?}, dir ({}, {})", stone2, stone3, dx, dy);
                 assert!(false);
             }
         }
-        web_sys::console::log_1(&format!("done.").into());
+        console_log!("done.");
     }
 
     // 19x19 < u16::MAX.
@@ -249,9 +255,9 @@ impl Graph {
 
     fn remove_edge(&mut self, crd1: Coord, pos1: NodePos,
                               crd2: Coord, pos2: NodePos) {
-        web_sys::console::log_1(&format!("removing edges between ({:?}, {:?}) and ({:?}, {:?})", crd1, pos1, crd2, pos2).into());
-        web_sys::console::log_1(&format!("({:?}, {:?}) contains {:?}", crd1, pos1, self.at(crd1, pos1).edges).into());
-        web_sys::console::log_1(&format!("({:?}, {:?}) contains {:?}", crd2, pos2, self.at(crd2, pos2).edges).into());
+        console_log!("removing edges between ({:?}, {:?}) and ({:?}, {:?})", crd1, pos1, crd2, pos2);
+        console_log!("({:?}, {:?}) contains {:?}", crd1, pos1, self.at(crd1, pos1).edges);
+        console_log!("({:?}, {:?}) contains {:?}", crd2, pos2, self.at(crd2, pos2).edges);
 
         assert!(self.at(crd1, pos1).edges.contains(&(crd2, pos2)));
         assert!(self.at(crd2, pos2).edges.contains(&(crd1, pos1)));
@@ -259,9 +265,9 @@ impl Graph {
         self.at_mut(crd1, pos1).edges.retain(|x| *x != (crd2, pos2));
         self.at_mut(crd2, pos2).edges.retain(|x| *x != (crd1, pos1));
 
-        web_sys::console::log_1(&format!("removed.").into());
-        web_sys::console::log_1(&format!("({:?}, {:?}) contains {:?}", crd1, pos1, self.at(crd1, pos1).edges).into());
-        web_sys::console::log_1(&format!("({:?}, {:?}) contains {:?}", crd2, pos2, self.at(crd2, pos2).edges).into());
+        console_log!("removed.");
+        console_log!("({:?}, {:?}) contains {:?}", crd1, pos1, self.at(crd1, pos1).edges);
+        console_log!("({:?}, {:?}) contains {:?}", crd2, pos2, self.at(crd2, pos2).edges);
     }
 
     fn at(&self, coord: Coord, pos: NodePos) -> &Node {
@@ -272,7 +278,6 @@ impl Graph {
             NodePos::S => 2,
             NodePos::W => 3,
         };
-//         web_sys::console::log_1(&format!("graph.at({:?}, {:?}), index = {}", coord, pos, idx).into());
 
         &self.nodes[idx]
     }
@@ -284,7 +289,6 @@ impl Graph {
             NodePos::S => 2,
             NodePos::W => 3,
         };
-//         web_sys::console::log_1(&format!("graph.at_mut({:?}, {:?}), index = {}", coord, pos, idx).into());
         &mut self.nodes[idx]
     }
 }
@@ -369,10 +373,7 @@ impl Board {
                 let x1 = (idx1 / self.width as usize) as i8;
                 let y1 = (idx1 % self.width as usize) as i8;
 
-//                 web_sys::console::log_1(&format!("looking index={}, x1={}, y1={}", idx1, x1, y1).into());
-
                 for dir1 in [Dir(1,1), Dir(-1,1), Dir(-1,-1), Dir(1,-1)].iter() {
-//                     web_sys::console::log_1(&format!("checking direction ({}, {})", dir1.0, dir1.1).into());
 
                     // check root collision at the first stone
                     // skip roots that forms 45 degree
@@ -384,16 +385,12 @@ impl Board {
                     let x2 = x1 + dir1.0;
                     let y2 = y1 + dir1.1;
 
-//                     web_sys::console::log_1(&format!("2nd stone is ({}, {})", x2, y2).into());
-
                     if x2 < 0 || y2 < 0 || self.width as i8 <= x2 || self.width as i8 <= y2 {
-//                         web_sys::console::log_1(&format!("out of board.").into());
                         continue;
                     }
 
                     let idx2 = x2 as usize * self.width as usize + y2 as usize;
                     if self.grids[idx2].color.is_some() {
-//                         web_sys::console::log_1(&format!("already occupied.").into());
                         continue;
                     }
                     // check root collision at the second stone
@@ -405,7 +402,6 @@ impl Board {
                     // possible next roots
                     {
                         let dir2 = Dir(dir1.0, 0);
-//                         web_sys::console::log_1(&format!("checking dir {:?}", dir2).into());
                         // check root collision at the second stone
                         if !self.grids[idx2].is_legal_root(dir2) {
                             continue;
@@ -413,7 +409,6 @@ impl Board {
                         // check stone/root collision at the third stone
                         let x3 = x2 + dir2.0;
                         let y3 = y2 + dir2.1;
-//                         web_sys::console::log_1(&format!("3rd stone would be ({}, {})", x3, y3).into());
 
                         if !(x3 < 0 || y3 < 0 || self.width as i8 <= x3 || self.width as i8 <= y3) {
                             let idx3 = x3 as usize * self.width as usize + y3 as usize;
@@ -425,7 +420,6 @@ impl Board {
                     }
                     {
                         let dir2 = Dir(0, dir1.1);
-//                         web_sys::console::log_1(&format!("checking dir {:?}", dir2).into());
                         // check root collision at the second stone
                         if !self.grids[idx2].is_legal_root(dir2) {
                             continue;
@@ -433,7 +427,6 @@ impl Board {
                         // check stone/root collision at the third stone
                         let x3 = x2 + dir2.0;
                         let y3 = y2 + dir2.1;
-//                         web_sys::console::log_1(&format!("3rd stone would be ({}, {})", x3, y3).into());
 
                         if !(x3 < 0 || y3 < 0 || self.width as i8 <= x3 || self.width as i8 <= y3) {
                             let idx3 = x3 as usize * self.width as usize + y3 as usize;
@@ -546,9 +539,9 @@ impl RandomPlayer {
         let mut moves = board.possible_moves(self.color);
         moves.shuffle(&mut self.rng);
         if let Some(next_move) = moves.pop() {
-            web_sys::console::log_1(&format!("applying move {:?}", next_move).into());
+            console_log!("applying move {:?}", next_move);
             board.apply_move(next_move, self.color);
-            web_sys::console::log_1(&format!("applied.").into());
+            console_log!("applied.");
         }
         board
     }
