@@ -1,9 +1,9 @@
 # You must change these to your own details.
 [package]
-name = "rust-webpack-template"
-description = "My super awesome Rust, WebAssembly, and Webpack project!"
+name = "separo-rs"
+description = "A boardgame"
 version = "0.1.0"
-authors = ["You <you@example.com>"]
+authors = ["Toru Niina <niina.toru.68u@gmail.com>"]
 categories = ["wasm"]
 readme = "README.md"
 edition = "2018"
