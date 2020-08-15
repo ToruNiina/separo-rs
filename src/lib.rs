@@ -215,7 +215,7 @@ impl Graph {
 
         let mut score: u16 = 0;
         let mut region:u16 = 0;
-        while let Some(idx) = self.nodes.iter().position(|n| n.region != None) {
+        while let Some(idx) = self.nodes.iter().position(|n| n.region == None) {
             let pos = match idx % 4 {
                 0 => NodePos::N,
                 1 => NodePos::E,
