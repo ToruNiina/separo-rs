@@ -153,4 +153,5 @@ function drawRoot(context, x1, y1, x2, y2, color_idx) {
     context.stroke();
 }
 
-run()
+document.getElementById("start-button").onclick = run;
+run();
