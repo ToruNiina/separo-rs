@@ -12,6 +12,28 @@
         ルールはページ下部を参照してください。
       </p>
     </div>
+
+    <div id="player-select" style="text-align:center;">
+        <select id="red player">
+            <option value="NotSelected">-- RED --</option>
+            <option value="Human">Human</option>
+            <option value="Random">Random</option>
+            <option value="Naive MC">Naive MC</option>
+            <option value="UCT MC">UCT MC</option>
+        </select>
+        <select id="blue player">
+            <option value="NotSelected">-- BLUE --</option>
+            <option value="Human">Human</option>
+            <option value="Random">Random</option>
+            <option value="Naive MC">Naive MC</option>
+            <option value="UCT MC">UCT MC</option>
+        </select>
+    </div>
+
+    <div style="text-align:center;">
+        <input type="button" value="start" id="start-button">
+    </div>
+
     <div id="game" style="text-align: center;">
       <canvas id="separo-board"></canvas>
     </div>
@@ -29,6 +51,6 @@
         手がない場合、パスができます。両者ともに着手不可能になれば終了です。
       </p>
     </div>
-    <script src="index.js"></script>
+    <script type="text/javascript" src="index.js"></script>
   </body>
 </html>
