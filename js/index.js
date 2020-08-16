@@ -21,11 +21,10 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// since wasm compilation should happen asynchronous, the function should be async.
 async function run() {
     let module = await import('../pkg/index.js');
     let separo = module.make_board(9);
-    let playerR = module.make_random_player(0, 12345n);
-    let playerB = module.make_random_player(1, 67890n);
     let canvas = document.getElementById("separo-board");
 
     canvas.width  = canvas_width;
@@ -33,20 +32,25 @@ async function run() {
 
     var context = canvas.getContext('2d');
 
+    const player_setting_R = document.getElementById("red player" );
+    const player_setting_B = document.getElementById("blue player");
+    const player_R = player_setting_R.options[player_setting_R.selectedIndex].value;
+    const player_B = player_setting_B.options[player_setting_B.selectedIndex].value;
+
+    console.log("player red  = ", player_R);
+    console.log("player blue = ", player_B);
+
     drawBoard(context, JSON.parse(separo.to_json()),
               separo.score(0), separo.score(1));
 
-    var halt = false; // for debugging
-    canvas.addEventListener('click', function(e) {
-        halt = !halt;
-    })
+    if(player_R == "NotSelected" || player_B == "NotSelected") {
+        return;
+    }
+
+    let playerR = module.make_random_player(0, 12345n);
+    let playerB = module.make_random_player(1, 67890n);
 
     while(!separo.is_gameover()) {
-        if(halt) {
-            await sleep(1000);
-            continue;
-        }
-
         console.log("Next is RED's turn")
         separo = playerR.play(separo);
 
