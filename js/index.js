@@ -120,26 +120,6 @@ function drawStone(context, x, y, color_idx) {
     context.stroke();
 }
 
-function drawTemporary(context, x0, y0, x1, y1, color_idx) {
-    context.beginPath();
-
-    context.strokeStyle = "rgb(0,0,0)"
-    context.lineWidth   = 2;
-    context.setLineDash([4, 4]);
-
-    // draw root
-    context.lineCap = 'round';
-    context.moveTo(x0 * grid_width + board_margin, y0 * grid_width + board_margin + canvas_header);
-    context.lineTo(x1 * grid_width + board_margin, y1 * grid_width + board_margin + canvas_header);
-    context.stroke();
-
-    // draw stone
-    context.arc(x1 * grid_width + board_margin, y1 * grid_width + board_margin + canvas_header,
-                stone_radius, 0, 2 * Math.PI, false);
-    context.stroke();
-    context.setLineDash([]);
-}
-
 function drawRoot(context, x1, y1, x2, y2, color_idx) {
     context.beginPath();
 
