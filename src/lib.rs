@@ -520,10 +520,6 @@ impl Board {
     }
 }
 
-// pub trait AIPlayer {
-//     fn play(&self, board: Board) -> Option<Move>;
-// }
-
 #[wasm_bindgen]
 pub struct RandomPlayer {
     pub color: Color,
