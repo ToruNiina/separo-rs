@@ -24,7 +24,7 @@ function sleep(ms) {
 // since wasm compilation should happen asynchronous, the function should be async.
 async function run() {
     let module = await import('../pkg/index.js');
-    let separo = module.make_board(board_size);
+    let separo = module.Board.new(board_size);
     let canvas = document.getElementById("separo-board");
 
     canvas.width  = canvas_width;
@@ -47,8 +47,8 @@ async function run() {
         return;
     }
 
-    let playerR = module.make_random_player(0, 12345n);
-    let playerB = module.make_random_player(1, 67890n);
+    let playerR = module.RandomPlayer.new(0, 12345n);
+    let playerB = module.RandomPlayer.new(1, 67890n);
 
     while(!separo.is_gameover()) {
         console.log("Next is RED's turn")

@@ -340,11 +340,6 @@ pub struct Board {
 }
 
 #[wasm_bindgen]
-pub fn make_board(width: usize) -> Board {
-    Board::new(width)
-}
-
-#[wasm_bindgen]
 impl Board {
     pub fn new(width: usize) -> Board {
         let mut board = Board{
@@ -543,7 +538,3 @@ impl RandomPlayer {
     }
 }
 
-#[wasm_bindgen]
-pub fn make_random_player(color: Color, s: u64) -> RandomPlayer {
-    RandomPlayer::new(color, s)
-}
