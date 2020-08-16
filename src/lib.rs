@@ -545,3 +545,72 @@ impl RandomPlayer {
     }
 }
 
+#[wasm_bindgen]
+pub struct NaiveMonteCarlo {
+    pub color: Color,
+    rng: rand::rngs::StdRng,
+    time_limit: Duration,
+}
+
+#[wasm_bindgen]
+impl NaiveMonteCarlo {
+    pub fn new(color: Color, seed: u64, timelimit: u64) -> Self {
+        NaiveMonteCarlo{
+            color,
+            rng: rand::rngs::StdRng::seed_from_u64(seed),
+            time_limit: Duration::new(timelimit, 0)
+        }
+    }
+
+    // if it wins, return true
+    fn playout(&mut self, mut board: Board) -> bool {
+        // it starts from the opponent's turn because our first move is already
+        // applied to this board.
+
+        let opponent_color = opponent_of(self.color);
+        while !board.is_gameover() {
+            {
+                let mut moves_opp = board.possible_moves(opponent_color);
+                moves_opp.shuffle(&mut self.rng);
+                if let Some(next_move) = moves_opp.pop() {
+                    board.apply_move(next_move, opponent_color)
+                }
+            }
+            {
+                let mut moves_slf = board.possible_moves(self.color);
+                moves_slf.shuffle(&mut self.rng);
+                if let Some(next_move) = moves_slf.pop() {
+                    board.apply_move(next_move, self.color);
+                }
+            }
+        }
+        board.score(opponent_of(self.color)) < board.score(self.color)
+    }
+
+    pub fn play(&mut self, board: Board) -> Board {
+        let stop = SystemTime::now() + self.time_limit;
+
+        let mut candidates = Vec::<(_, _, u32)>::new();
+        for possible_move in board.possible_moves(self.color).iter() {
+            let mut cand_board = board.clone();
+            cand_board.apply_move(*possible_move, self.color);
+            candidates.push((*possible_move, cand_board, 0));
+        }
+
+        if candidates.is_empty() {
+            return board
+        }
+
+        while SystemTime::now() < stop {
+            for candidate in candidates.iter_mut() {
+                if self.playout(candidate.1.clone()) {
+                    candidate.2 += 1;
+                }
+            }
+        }
+        // I think we don't need clone() here, we can just move it out
+        candidates.iter().max_by_key(|x| x.2).unwrap().1.clone()
+    }
+}
+
+
