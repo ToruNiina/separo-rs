@@ -42,6 +42,13 @@ pub enum Color {
     Blue = 1,
 }
 
+fn opponent_of(color: Color) -> Color {
+    match color {
+        Color::Red => Color::Blue,
+        _          => Color::Red
+    }
+}
+
 // To count number of separated regions, we will consider the following graph.
 // Each root cuts the edges that intersect with the root. The number of
 // connected components in the resulting graph.
