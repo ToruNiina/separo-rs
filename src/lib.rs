@@ -525,6 +525,36 @@ impl Board {
         }
         format!("{{\"stones\":[{}],\"roots\":[{}]}}", stones, roots).to_string()
     }
+
+    fn playout<R:Rng>(&mut self, init_turn: Color, rng: &mut R) -> Option<Color> {
+        let next_turn = opponent_of(init_turn);
+        while !self.is_gameover() {
+            {
+                let mut moves = self.possible_moves(init_turn);
+                moves.shuffle(rng);
+                if let Some(next_move) = moves.pop() {
+                    self.apply_move(next_move, init_turn)
+                }
+            }
+            {
+                let mut moves = self.possible_moves(next_turn);
+                moves.shuffle(rng);
+                if let Some(next_move) = moves.pop() {
+                    self.apply_move(next_move, next_turn);
+                }
+            }
+        }
+
+        let red_score  = self.score(Color::Red);
+        let blue_score = self.score(Color::Blue);
+        if blue_score < red_score {
+            Some(Color::Red)
+        } else if red_score < blue_score {
+            Some(Color::Blue)
+        } else {
+            None
+        }
+    }
 }
 
 #[wasm_bindgen]
@@ -567,31 +597,6 @@ impl NaiveMonteCarlo {
         }
     }
 
-    // if it wins, return true
-    fn playout(&mut self, mut board: Board) -> bool {
-        // it starts from the opponent's turn because our first move is already
-        // applied to this board.
-
-        let opponent_color = opponent_of(self.color);
-        while !board.is_gameover() {
-            {
-                let mut moves_opp = board.possible_moves(opponent_color);
-                moves_opp.shuffle(&mut self.rng);
-                if let Some(next_move) = moves_opp.pop() {
-                    board.apply_move(next_move, opponent_color)
-                }
-            }
-            {
-                let mut moves_slf = board.possible_moves(self.color);
-                moves_slf.shuffle(&mut self.rng);
-                if let Some(next_move) = moves_slf.pop() {
-                    board.apply_move(next_move, self.color);
-                }
-            }
-        }
-        board.score(opponent_of(self.color)) < board.score(self.color)
-    }
-
     pub fn play(&mut self, board: Board) -> Board {
 
         let mut candidates = Vec::<(_, _, u32)>::new();
@@ -611,7 +616,8 @@ impl NaiveMonteCarlo {
         let mut samples: usize = 0;
         while Instant::now() < stop {
             for candidate in candidates.iter_mut() {
-                if self.playout(candidate.1.clone()) {
+                let mut tmp = candidate.1.clone();
+                if tmp.playout(self.color, &mut self.rng) == Some(self.color) {
                     candidate.2 += 1;
                 }
             }
@@ -683,6 +689,9 @@ fn expand_node(node_ptr: Rc<RefCell<UCTNode>>) {
         child.borrow_mut().parent = Rc::downgrade(&node_ptr);
         node.children.push(child);
     }
+    // do one playout to make node.samples != 0
+
+
     assert!(0 < node.children.len());
 }
 
@@ -711,36 +720,6 @@ impl UCTMonteCarlo {
         }
     }
 
-    fn playout(&mut self, mut board: Board, init_turn: Color) -> Option<Color> {
-        let next_turn = opponent_of(init_turn);
-        while !board.is_gameover() {
-            {
-                let mut moves = board.possible_moves(init_turn);
-                moves.shuffle(&mut self.rng);
-                if let Some(next_move) = moves.pop() {
-                    board.apply_move(next_move, init_turn)
-                }
-            }
-            {
-                let mut moves = board.possible_moves(next_turn);
-                moves.shuffle(&mut self.rng);
-                if let Some(next_move) = moves.pop() {
-                    board.apply_move(next_move, next_turn);
-                }
-            }
-        }
-
-        let red_score  = board.score(Color::Red);
-        let blue_score = board.score(Color::Blue);
-        if blue_score < red_score {
-            Some(Color::Red)
-        } else if red_score < blue_score {
-            Some(Color::Blue)
-        } else {
-            None
-        }
-    }
-
     pub fn play(&mut self, board: Board) -> Board {
         // find the current state from the children of root node
         // (means: find opponent's move)
@@ -754,7 +733,10 @@ impl UCTMonteCarlo {
         let mut node = Rc::clone(&self.root);
         while Instant::now() < stop {
             if node.borrow().children.is_empty() {
-                if let Some(wins) = self.playout(node.borrow().board.clone(), node.borrow().color) {
+                console_log!("leaf node found");
+                if let Some(wins) = node.borrow().board.clone().playout(node.borrow().color, &mut self.rng) {
+                    console_log!("playout: {:?} wins", wins);
+
                     let mut node_up = node.borrow().clone();
                     while let Some(parent) = node_up.parent.upgrade() {
                         parent.borrow_mut().samples += 1;
@@ -765,10 +747,12 @@ impl UCTMonteCarlo {
                     }
                 }
                 node.borrow_mut().samples += 1;
-                if self.expand_threshold < node.borrow().samples {
+                if self.expand_threshold <= node.borrow().samples {
+                    console_log!("threshold exceeded. expanding the node");
                     expand_node(Rc::clone(&node));
                 }
             } else {
+                console_log!("searching highest UCB1 node");
                 let logn_samples = f64::ln(self.root.borrow().samples as f64);
                 node.borrow_mut().children
                     .sort_by(|a, b| a.borrow().ucb1(self.ucb1_coeff, logn_samples)
@@ -776,6 +760,7 @@ impl UCTMonteCarlo {
                     .unwrap_or(std::cmp::Ordering::Less));
                 let tmp = Rc::clone(node.borrow().children.last().unwrap());
                 node = tmp;
+                console_log!("highest UCB1 = {}", node.borrow().ucb1(self.ucb1_coeff, f64::ln(self.root.borrow().samples as f64)));
             }
         }
 
