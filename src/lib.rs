@@ -636,7 +636,6 @@ impl NaiveMonteCarlo {
 
     pub fn play(&mut self, board: Board) -> Board {
 //         let stop = SystemTime::now() + self.time_limit;
-        let stop = Instant::now() + self.time_limit;
 
         let mut candidates = Vec::<(_, _, u32)>::new();
         for possible_move in board.possible_moves(self.color).iter() {
@@ -649,6 +648,10 @@ impl NaiveMonteCarlo {
             return board
         }
 
+        console_log!("{} possible moves are there", candidates.len());
+
+        let stop = Instant::now() + self.time_limit;
+        let mut samples: usize = 0;
 //         while SystemTime::now() < stop {
         while Instant::now() < stop {
             for candidate in candidates.iter_mut() {
@@ -656,7 +659,10 @@ impl NaiveMonteCarlo {
                     candidate.2 += 1;
                 }
             }
+            samples += 1;
         }
+        console_log!("{} samples simulated for each {} moves. in total: {}",
+                     samples, candidates.len(), samples * candidates.len());
         // I think we don't need clone() here, we can just move it out
         candidates.iter().max_by_key(|x| x.2).unwrap().1.clone()
     }
