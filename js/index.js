@@ -22,8 +22,13 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+let is_running = false;
+
 // since wasm compilation should happen asynchronous, the function should be async.
 async function run() {
+    if(is_running) {return;}
+    is_running = true;
+
     let module = await import('../pkg/index.js');
     let separo = module.Board.new(board_size);
     let canvas = document.getElementById("separo-board");
@@ -45,11 +50,37 @@ async function run() {
               separo.score(0), separo.score(1), "Select players");
 
     if(player_R == "NotSelected" || player_B == "NotSelected") {
+        is_running = false;
         return;
     }
 
-    let playerR = module.NaiveMonteCarlo.new(0, 12345n, time_limit);
-    let playerB = module.NaiveMonteCarlo.new(1, 67890n, time_limit);
+    let playerR;
+    let playerB;
+
+    let gen_seed = function() {
+        return BigInt(Math.floor(Math.random() * 10000000))
+    }
+
+    if(player_R == "Random") {
+        playerR = module.RandomPlayer.new(0, gen_seed());
+    } else if (player_R == "Naive MC") {
+        playerR = module.NaiveMonteCarlo.new(0, gen_seed(), time_limit);
+    } else if (player_R == "UCT MC") {
+        playerR = module.UCTMonteCarlo.new(0, gen_seed(), time_limit, 1.41421356, 1, board_size);
+    } else {
+        is_running = false;
+        return;
+    }
+    if(player_B == "Random") {
+        playerB = module.RandomPlayer.new(1, gen_seed());
+    } else if (player_B == "Naive MC") {
+        playerB = module.NaiveMonteCarlo.new(1, gen_seed(), time_limit);
+    } else if (player_B == "UCT MC") {
+        playerB = module.UCTMonteCarlo.new(1, gen_seed(), time_limit, 1.41421356, 1, board_size);
+    } else {
+        is_running = false;
+        return;
+    }
 
     while(!separo.is_gameover()) {
         separo = playerR.play(separo);
@@ -64,6 +95,14 @@ async function run() {
                   separo.score(0), separo.score(1), "Red's turn");
         await sleep(100);
     }
+
+    var last_score_red  = separo.score(0);
+    var last_score_blue = separo.score(1);
+    drawBoard(context, JSON.parse(separo.to_json()),
+              last_score_red, last_score_blue,
+              last_score_red > last_score_blue ? "Red wins!" : "Blue wins!");
+    is_running = false;
+    return;
 }
 
 function drawBoard(context, board, red_score, blue_score, msg) {
