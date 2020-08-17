@@ -148,7 +148,6 @@ impl Graph {
         let Move(stone1, stone2, stone3) = next_move;
 
         // first root
-//         console_log!("graph.apply_move({:?}, {:?}) ...", stone1, stone2);
         let dx = stone2.0 - stone1.0;
         let dy = stone2.1 - stone1.1;
         match (dx, dy) {
@@ -175,12 +174,9 @@ impl Graph {
                 self.remove_edge(stone2, NodePos::S, stone2, NodePos::E);
             }
             _ => {
-//                 console_log!("invalid 1st root from {:?} to {:?}, dir ({}, {})", stone1, stone2, dx, dy);
                 assert!(false);
             }
         }
-//         console_log!("done.");
-//         console_log!("graph.apply_move({:?}, {:?}) ... ", stone2, stone3);
         // second root
         let dx = stone3.0 - stone2.0;
         let dy = stone3.1 - stone2.1;
@@ -212,11 +208,9 @@ impl Graph {
                 }
             }
             _ => {
-//                 console_log!("invalid 2nd root from {:?} to {:?}, dir ({}, {})", stone2, stone3, dx, dy);
                 assert!(false);
             }
         }
-//         console_log!("done.");
     }
 
     // 19x19 < u16::MAX.
@@ -267,19 +261,11 @@ impl Graph {
 
     fn remove_edge(&mut self, crd1: Coord, pos1: NodePos,
                               crd2: Coord, pos2: NodePos) {
-//         console_log!("removing edges between ({:?}, {:?}) and ({:?}, {:?})", crd1, pos1, crd2, pos2);
-//         console_log!("({:?}, {:?}) contains {:?}", crd1, pos1, self.at(crd1, pos1).edges);
-//         console_log!("({:?}, {:?}) contains {:?}", crd2, pos2, self.at(crd2, pos2).edges);
-
         assert!(self.at(crd1, pos1).edges.contains(&(crd2, pos2)));
         assert!(self.at(crd2, pos2).edges.contains(&(crd1, pos1)));
 
         self.at_mut(crd1, pos1).edges.retain(|x| *x != (crd2, pos2));
         self.at_mut(crd2, pos2).edges.retain(|x| *x != (crd1, pos1));
-
-//         console_log!("removed.");
-//         console_log!("({:?}, {:?}) contains {:?}", crd1, pos1, self.at(crd1, pos1).edges);
-//         console_log!("({:?}, {:?}) contains {:?}", crd2, pos2, self.at(crd2, pos2).edges);
     }
 
     fn at(&self, coord: Coord, pos: NodePos) -> &Node {
@@ -572,9 +558,7 @@ impl RandomPlayer {
         let mut moves = board.possible_moves(self.color);
         moves.shuffle(&mut self.rng);
         if let Some(next_move) = moves.pop() {
-//             console_log!("applying move {:?}", next_move);
             board.apply_move(next_move, self.color);
-//             console_log!("applied.");
         }
         board
     }
@@ -611,7 +595,6 @@ impl NaiveMonteCarlo {
         }
 
 //         console_log!("{} possible moves are there", candidates.len());
-
         let stop = Instant::now() + self.time_limit;
         let mut samples: usize = 0;
         while Instant::now() < stop {
@@ -625,12 +608,12 @@ impl NaiveMonteCarlo {
         }
 //         console_log!("{} samples simulated for each {} moves. in total: {}",
 //                      samples, candidates.len(), samples * candidates.len());
+//         console_log!("win_rates = {:?}", candidates.iter()
+//             .map(|x| x.2 as f64 / samples as f64).collect::<Vec<_>>());
 
         candidates.sort_by_key(|x| x.2);
         console_log!("estimated win rate = {}.",
                      candidates.last().unwrap().2 as f64 / samples as f64);
-//         console_log!("win_rate = {:?}", candidates.iter()
-//             .map(|x| x.2 as f64 / samples as f64).collect::<Vec<_>>());
         candidates.pop().unwrap().1
     }
 }
