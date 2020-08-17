@@ -8,6 +8,7 @@ const grid_width   = board_width / (board_size - 1);
 const stone_radius =  grid_width * 0.3;
 const stone_stroke =   2;
 const root_stroke  =   5;
+const time_limit   =   1n;
 
 const board_color = "rgb(255,255,255)";
 const grid_color  = "rgb(0,0,0)";
@@ -47,8 +48,8 @@ async function run() {
         return;
     }
 
-    let playerR = module.RandomPlayer.new(0, 12345n);
-    let playerB = module.RandomPlayer.new(1, 67890n);
+    let playerR = module.NaiveMonteCarlo.new(0, 12345n, time_limit);
+    let playerB = module.NaiveMonteCarlo.new(1, 67890n, time_limit);
 
     while(!separo.is_gameover()) {
         console.log("Next is RED's turn")
