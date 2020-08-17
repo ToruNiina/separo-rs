@@ -736,19 +736,12 @@ impl UCTMonteCarlo {
                         .partial_cmp(&b.borrow().ucb1(self.ucb1_coeff, lnN))
                         .unwrap_or(std::cmp::Ordering::Less)
                     );
-//                 console_log!("UCB1 = {:?} at depth = {}", node.borrow().children
-//                              .iter()
-//                              .map(|x| x.borrow().ucb1(self.ucb1_coeff, lnN))
-//                              .collect::<Vec<_>>(), depth);
-
                 let tmp = Rc::clone(node.borrow().children.last().unwrap());
                 node = tmp;
                 depth += 1;
             }
-//             console_log!("leaf found. Current depth = {}", depth);
             let wins = node.borrow().board.clone()
                 .playout(node.borrow().color, &mut self.rng);
-//             console_log!("playout: {:?} wins", wins);
 
             if wins != Some(node.borrow().color) {
                 node.borrow_mut().win += 1;
@@ -757,14 +750,11 @@ impl UCTMonteCarlo {
 
             // do this after `samples += 1`
             if self.expand_threshold <= node.borrow().samples {
-//                 console_log!("threshold exceeded. expanding the node");
                 expand_node(&node);
             }
 
             while let Some(parent) = Rc::clone(&node).borrow().parent.upgrade() {
                 depth -= 1;
-//                 console_log!("going up to depth = {}", depth);
-
                 parent.borrow_mut().samples += 1;
                 if wins != Some(parent.borrow().color) {
                     parent.borrow_mut().win += 1;
@@ -772,7 +762,6 @@ impl UCTMonteCarlo {
                 node = parent;
             }
             assert_eq!(depth, 0);
-//             console_log!("We hit the top. depth = {}", depth);
         }
 
         // choose the next root by chosing the node with max win rate
