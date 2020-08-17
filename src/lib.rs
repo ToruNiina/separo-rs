@@ -8,7 +8,7 @@ use std::option::Option;
 use std::time::Duration;
 
 use std::rc::{Rc, Weak};
-use std::cell::RefCell;
+use std::cell::{RefCell, RefMut};
 
 mod instant;
 use crate::instant::Instant;
@@ -612,7 +612,7 @@ impl NaiveMonteCarlo {
 //             .map(|x| x.2 as f64 / samples as f64).collect::<Vec<_>>());
 
         candidates.sort_by_key(|x| x.2);
-        console_log!("estimated win rate = {}.",
+        console_log!("{:?}, estimated win rate = {}.", self.color,
                      candidates.last().unwrap().2 as f64 / samples as f64);
         candidates.pop().unwrap().1
     }
@@ -652,29 +652,37 @@ impl UCTNode {
     }
 
     fn ucb1(&self, coef: f64, logn_total_samples: f64) -> f64 {
-        self.win_rate() + coef * f64::sqrt(logn_total_samples / self.samples as f64)
+        if self.samples == 0 {
+            f64::INFINITY
+        } else {
+            self.win_rate() + coef * f64::sqrt(logn_total_samples / self.samples as f64)
+        }
     }
 }
 
-fn expand_node(node_ptr: Rc<RefCell<UCTNode>>) {
-    let mut node = node_ptr.borrow_mut();
-    for possible_move in node.board.possible_moves(node.color) {
-        let mut possible_board = node.board.clone();
-        possible_board.apply_move(possible_move, node.color);
+fn expand_node(node_ptr: &Rc<RefCell<UCTNode>>) {
+    let mut node: RefMut<UCTNode> = node_ptr.borrow_mut();
+    let possible_moves = node.board.possible_moves(node.color);
+    for possible_move in possible_moves.iter() {
+        let mut possible_board: Board = node.board.clone();
+        possible_board.apply_move(*possible_move, node.color);
 
-        let child = Rc::new(RefCell::new(UCTNode::new(opponent_of(node.color), possible_board)));
-        child.borrow_mut().parent = Rc::downgrade(&node_ptr);
+        // child node represents opponent's turn
+        let child = Rc::new(RefCell::new(
+                UCTNode::new(opponent_of(node.color), possible_board)));
+
+        child.borrow_mut().parent = Rc::downgrade(node_ptr);
         node.children.push(child);
     }
+
     // handle passed turn
     if node.children.is_empty() {
-        let child = Rc::new(RefCell::new(UCTNode::new(opponent_of(node.color), node.board.clone())));
-        child.borrow_mut().parent = Rc::downgrade(&node_ptr);
+        // if passed, the same board is passed to opponent
+        let child = Rc::new(RefCell::new(
+                UCTNode::new(opponent_of(node.color), node.board.clone())));
+        child.borrow_mut().parent = Rc::downgrade(node_ptr);
         node.children.push(child);
     }
-    // do one playout to make node.samples != 0
-
-
     assert!(0 < node.children.len());
 }
 
@@ -684,13 +692,16 @@ impl UCTMonteCarlo {
         let root = if color == Color::Red {
             // we need to init root with a board before starting...
             // play() function re-use the previous estimation.
-            let ancester = Rc::new(RefCell::new(UCTNode::new(Color::Blue, Board::new(board_width))));
-            let root = Rc::new(RefCell::new(UCTNode::new(Color::Red, Board::new(board_width))));
+            let ancester = Rc::new(RefCell::new(
+                    UCTNode::new(Color::Blue, Board::new(board_width))));
+            let root = Rc::new(RefCell::new(
+                    UCTNode::new(Color::Red,  Board::new(board_width))));
             ancester.borrow_mut().children.push(root);
             ancester
         } else {
-            let root = Rc::new(RefCell::new(UCTNode::new(Color::Red, Board::new(board_width))));
-            expand_node(Rc::clone(&root));
+            let root = Rc::new(RefCell::new(
+                    UCTNode::new(Color::Red, Board::new(board_width))));
+            expand_node(&root);
             root
         };
         UCTMonteCarlo{
@@ -710,59 +721,77 @@ impl UCTMonteCarlo {
                         .find(|x| x.borrow().board.grids == board.grids).unwrap());
         self.root = tmp;
         self.root.borrow_mut().parent = Weak::new(); // discard ancesters
+        assert_eq!(self.root.borrow().color, self.color);
 
         // search and expand the tree
         let stop = Instant::now() + self.time_limit;
-        let mut node = Rc::clone(&self.root);
         while Instant::now() < stop {
-            if node.borrow().children.is_empty() {
-                console_log!("leaf node found");
-                if let Some(wins) = node.borrow().board.clone().playout(node.borrow().color, &mut self.rng) {
-                    console_log!("playout: {:?} wins", wins);
+            let mut node = Rc::clone(&self.root);
+            let mut depth = 0;
+            while !node.borrow().children.is_empty() {
+                let lnN = f64::ln(self.root.borrow().samples as f64);
 
-                    let mut node_up = node.borrow().clone();
-                    while let Some(parent) = node_up.parent.upgrade() {
-                        parent.borrow_mut().samples += 1;
-                        if parent.borrow().color == wins {
-                            parent.borrow_mut().win += 1;
-                        }
-                        node_up = parent.borrow().clone();
-                    }
-                }
-                node.borrow_mut().samples += 1;
-                if self.expand_threshold <= node.borrow().samples {
-                    console_log!("threshold exceeded. expanding the node");
-                    expand_node(Rc::clone(&node));
-                }
-            } else {
-                console_log!("searching highest UCB1 node");
-                let logn_samples = f64::ln(self.root.borrow().samples as f64);
                 node.borrow_mut().children
-                    .sort_by(|a, b| a.borrow().ucb1(self.ucb1_coeff, logn_samples)
-                      .partial_cmp(&b.borrow().ucb1(self.ucb1_coeff, logn_samples))
-                    .unwrap_or(std::cmp::Ordering::Less));
+                    .sort_by(|a, b|   a.borrow().ucb1(self.ucb1_coeff, lnN)
+                        .partial_cmp(&b.borrow().ucb1(self.ucb1_coeff, lnN))
+                        .unwrap_or(std::cmp::Ordering::Less)
+                    );
+//                 console_log!("UCB1 = {:?} at depth = {}", node.borrow().children
+//                              .iter()
+//                              .map(|x| x.borrow().ucb1(self.ucb1_coeff, lnN))
+//                              .collect::<Vec<_>>(), depth);
+
                 let tmp = Rc::clone(node.borrow().children.last().unwrap());
                 node = tmp;
-                console_log!("highest UCB1 = {}", node.borrow().ucb1(self.ucb1_coeff, f64::ln(self.root.borrow().samples as f64)));
+                depth += 1;
             }
+//             console_log!("leaf found. Current depth = {}", depth);
+            let wins = node.borrow().board.clone()
+                .playout(node.borrow().color, &mut self.rng);
+//             console_log!("playout: {:?} wins", wins);
+
+            if wins != Some(node.borrow().color) {
+                node.borrow_mut().win += 1;
+            }
+            node.borrow_mut().samples += 1;
+
+            // do this after `samples += 1`
+            if self.expand_threshold <= node.borrow().samples {
+//                 console_log!("threshold exceeded. expanding the node");
+                expand_node(&node);
+            }
+
+            while let Some(parent) = Rc::clone(&node).borrow().parent.upgrade() {
+                depth -= 1;
+//                 console_log!("going up to depth = {}", depth);
+
+                parent.borrow_mut().samples += 1;
+                if wins != Some(parent.borrow().color) {
+                    parent.borrow_mut().win += 1;
+                }
+                node = parent;
+            }
+            assert_eq!(depth, 0);
+//             console_log!("We hit the top. depth = {}", depth);
         }
 
-        // choose the next root (now the root color is opponent's color)
-        let logn_samples = f64::ln(self.root.borrow().samples as f64);
+        // choose the next root by chosing the node with max win rate
         self.root.borrow_mut().children
-            .sort_by(|a, b| a.borrow().ucb1(self.ucb1_coeff, logn_samples)
-              .partial_cmp(&b.borrow().ucb1(self.ucb1_coeff, logn_samples))
-            .unwrap_or(std::cmp::Ordering::Less));
+            .sort_by(|a, b|   a.borrow().win_rate()
+                .partial_cmp(&b.borrow().win_rate())
+                .unwrap_or(std::cmp::Ordering::Less)
+            );
+
         let tmp = Rc::clone(self.root.borrow().children.last().unwrap());
         self.root = tmp;
         self.root.borrow_mut().parent = Weak::new(); // discard ancesters
+        console_log!("{:?}, estimated win rate = {}.", self.color,
+                     self.root.borrow().win_rate());
 
         if self.root.borrow().children.is_empty() {
-            expand_node(Rc::clone(&self.root));
+            console_log!("root.children is empty. Too short time limit?");
         }
-
-        console_log!("estimated win rate = {}.", self.root.borrow().win_rate());
-
+        assert!(!self.root.borrow().children.is_empty());
         // return the board in the root node
         self.root.borrow().board.clone()
     }
