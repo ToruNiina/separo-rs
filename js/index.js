@@ -1,7 +1,7 @@
 const canvas_header = 100;
 const canvas_width  = 540;
 const canvas_height = 640;
-const board_size   =   9;
+const board_size   =    9;
 const board_margin =  30;
 const board_width  = 480;
 const grid_width   = board_width / (board_size - 1);
@@ -42,7 +42,7 @@ async function run() {
     console.log("player blue = ", player_B);
 
     drawBoard(context, JSON.parse(separo.to_json()),
-              separo.score(0), separo.score(1));
+              separo.score(0), separo.score(1), "Select players");
 
     if(player_R == "NotSelected" || player_B == "NotSelected") {
         return;
@@ -52,23 +52,21 @@ async function run() {
     let playerB = module.NaiveMonteCarlo.new(1, 67890n, time_limit);
 
     while(!separo.is_gameover()) {
-        console.log("Next is RED's turn")
         separo = playerR.play(separo);
 
         drawBoard(context, JSON.parse(separo.to_json()),
-                  separo.score(0), separo.score(1));
-        await sleep(1000);
+                  separo.score(0), separo.score(1), "Blue's turn");
+        await sleep(100);
 
-        console.log("Next is BLUE's turn")
         separo = playerB.play(separo);
 
         drawBoard(context, JSON.parse(separo.to_json()),
-                  separo.score(0), separo.score(1));
-        await sleep(1000);
+                  separo.score(0), separo.score(1), "Red's turn");
+        await sleep(100);
     }
 }
 
-function drawBoard(context, board, red_score, blue_score) {
+function drawBoard(context, board, red_score, blue_score, msg) {
 
     const stones = board["stones"];
     const roots  = board["roots"];
@@ -83,6 +81,9 @@ function drawBoard(context, board, red_score, blue_score) {
     context.textAlign = "center"
     context.fillText(`Red: ${red_score} | Blue: ${blue_score}`,
                      canvas_width / 2, 40.0);
+
+    context.fillText(msg, canvas_width / 2, 70.0);
+
 
     // draw grid
     context.strokeStyle=grid_color;
