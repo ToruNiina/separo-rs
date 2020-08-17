@@ -1,12 +1,14 @@
 use wasm_bindgen::prelude::*;
-use web_sys::console;
 
 use arrayvec::ArrayVec;
 use rand::prelude::*;
 
 use std::vec::Vec;
 use std::option::Option;
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
+
+use std::rc::{Rc, Weak};
+use std::cell::RefCell;
 
 // When the `wee_alloc` feature is enabled, this uses `wee_alloc` as the global
 // allocator.
@@ -84,7 +86,7 @@ impl Node {
         Node{region: None, edges: ArrayVec::new()}
     }
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct Graph {
     ngrids: u8,     // width of the board (# of lines) - 1
     nodes:  Vec<Node>,
@@ -338,7 +340,7 @@ impl Grid {
 
 
 #[wasm_bindgen]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Board {
     width: u8,        // normally, 9 (9x9 board) upto 19x19
     grids: Vec<Grid>, // 9x9 grids there (if width == 9)
@@ -547,7 +549,6 @@ impl RandomPlayer {
 
 // ----------------------------------------------------------------------------
 // workaround for SystemTime::now in WASM
-// #![allow(dead_code, unused_imports)]
 
 use wasm_bindgen::prelude::*;
 use std::convert::{TryInto};
@@ -635,7 +636,6 @@ impl NaiveMonteCarlo {
     }
 
     pub fn play(&mut self, board: Board) -> Board {
-//         let stop = SystemTime::now() + self.time_limit;
 
         let mut candidates = Vec::<(_, _, u32)>::new();
         for possible_move in board.possible_moves(self.color).iter() {
@@ -648,11 +648,10 @@ impl NaiveMonteCarlo {
             return board
         }
 
-        console_log!("{} possible moves are there", candidates.len());
+//         console_log!("{} possible moves are there", candidates.len());
 
         let stop = Instant::now() + self.time_limit;
         let mut samples: usize = 0;
-//         while SystemTime::now() < stop {
         while Instant::now() < stop {
             for candidate in candidates.iter_mut() {
                 if self.playout(candidate.1.clone()) {
@@ -661,9 +660,185 @@ impl NaiveMonteCarlo {
             }
             samples += 1;
         }
-        console_log!("{} samples simulated for each {} moves. in total: {}",
-                     samples, candidates.len(), samples * candidates.len());
-        // I think we don't need clone() here, we can just move it out
-        candidates.iter().max_by_key(|x| x.2).unwrap().1.clone()
+//         console_log!("{} samples simulated for each {} moves. in total: {}",
+//                      samples, candidates.len(), samples * candidates.len());
+
+        candidates.sort_by_key(|x| x.2);
+        console_log!("estimated win rate = {}.",
+                     candidates.last().unwrap().2 as f64 / samples as f64);
+//         console_log!("win_rate = {:?}", candidates.iter()
+//             .map(|x| x.2 as f64 / samples as f64).collect::<Vec<_>>());
+        candidates.pop().unwrap().1
+    }
+}
+
+#[wasm_bindgen]
+pub struct UCTMonteCarlo {
+    pub color:        Color,
+    rng:              rand::rngs::StdRng,
+    time_limit:       Duration,
+    ucb1_coeff:       f64,
+    expand_threshold: u32,
+    root:             Rc<RefCell<UCTNode>>,
+}
+
+#[derive(Debug, Clone)]
+struct UCTNode {
+    win:      u32,
+    samples:  u32,
+    children: Vec<Rc<RefCell<UCTNode>>>,
+    parent:   Weak<RefCell<UCTNode>>,
+    color:    Color,
+    board:    Board,
+}
+
+impl UCTNode {
+    fn new(color: Color, board: Board) -> Self {
+        UCTNode{win: 0, samples: 0, children: Vec::new(), parent: Weak::new(), color, board}
+    }
+
+    fn win_rate(&self) -> f64 {
+        if self.samples == 0 { // avoid NaN
+            0.5 // no information, half-half.
+        } else {
+            self.win as f64 / self.samples as f64
+        }
+    }
+
+    fn ucb1(&self, coef: f64, logn_total_samples: f64) -> f64 {
+        self.win_rate() + coef * f64::sqrt(logn_total_samples / self.samples as f64)
+    }
+}
+
+fn expand_node(node_ptr: Rc<RefCell<UCTNode>>) {
+    let mut node = node_ptr.borrow_mut();
+    for possible_move in node.board.possible_moves(node.color) {
+        let mut possible_board = node.board.clone();
+        possible_board.apply_move(possible_move, node.color);
+
+        let child = Rc::new(RefCell::new(UCTNode::new(opponent_of(node.color), possible_board)));
+        child.borrow_mut().parent = Rc::downgrade(&node_ptr);
+        node.children.push(child);
+    }
+    // handle passed turn
+    if node.children.is_empty() {
+        let child = Rc::new(RefCell::new(UCTNode::new(opponent_of(node.color), node.board.clone())));
+        child.borrow_mut().parent = Rc::downgrade(&node_ptr);
+        node.children.push(child);
+    }
+    assert!(0 < node.children.len());
+}
+
+#[wasm_bindgen]
+impl UCTMonteCarlo {
+    pub fn new(color: Color, seed: u64, timelimit: u64, ucb1_coeff: f64, expand_threshold: u32, board_width: usize) -> Self {
+        let root = if color == Color::Red {
+            // we need to init root with a board before starting...
+            // play() function re-use the previous estimation.
+            let ancester = Rc::new(RefCell::new(UCTNode::new(Color::Blue, Board::new(board_width))));
+            let root = Rc::new(RefCell::new(UCTNode::new(Color::Red, Board::new(board_width))));
+            ancester.borrow_mut().children.push(root);
+            ancester
+        } else {
+            let root = Rc::new(RefCell::new(UCTNode::new(Color::Red, Board::new(board_width))));
+            expand_node(Rc::clone(&root));
+            root
+        };
+        UCTMonteCarlo{
+            color,
+            rng: rand::rngs::StdRng::seed_from_u64(seed),
+            time_limit: Duration::new(timelimit, 0),
+            ucb1_coeff,
+            expand_threshold,
+            root,
+        }
+    }
+
+    fn playout(&mut self, mut board: Board, init_turn: Color) -> Option<Color> {
+        let next_turn = opponent_of(init_turn);
+        while !board.is_gameover() {
+            {
+                let mut moves = board.possible_moves(init_turn);
+                moves.shuffle(&mut self.rng);
+                if let Some(next_move) = moves.pop() {
+                    board.apply_move(next_move, init_turn)
+                }
+            }
+            {
+                let mut moves = board.possible_moves(next_turn);
+                moves.shuffle(&mut self.rng);
+                if let Some(next_move) = moves.pop() {
+                    board.apply_move(next_move, next_turn);
+                }
+            }
+        }
+
+        let red_score  = board.score(Color::Red);
+        let blue_score = board.score(Color::Blue);
+        if blue_score < red_score {
+            Some(Color::Red)
+        } else if red_score < blue_score {
+            Some(Color::Blue)
+        } else {
+            None
+        }
+    }
+
+    pub fn play(&mut self, board: Board) -> Board {
+        // find the current state from the children of root node
+        // (means: find opponent's move)
+        let tmp = Rc::clone(self.root.borrow().children.iter()
+                        .find(|x| x.borrow().board.grids == board.grids).unwrap());
+        self.root = tmp;
+        self.root.borrow_mut().parent = Weak::new(); // discard ancesters
+
+        // search and expand the tree
+        let stop = Instant::now() + self.time_limit;
+        let mut node = Rc::clone(&self.root);
+        while Instant::now() < stop {
+            if node.borrow().children.is_empty() {
+                if let Some(wins) = self.playout(node.borrow().board.clone(), node.borrow().color) {
+                    let mut node_up = node.borrow().clone();
+                    while let Some(parent) = node_up.parent.upgrade() {
+                        parent.borrow_mut().samples += 1;
+                        if parent.borrow().color == wins {
+                            parent.borrow_mut().win += 1;
+                        }
+                        node_up = parent.borrow().clone();
+                    }
+                }
+                node.borrow_mut().samples += 1;
+                if self.expand_threshold < node.borrow().samples {
+                    expand_node(Rc::clone(&node));
+                }
+            } else {
+                let logn_samples = f64::ln(self.root.borrow().samples as f64);
+                node.borrow_mut().children
+                    .sort_by(|a, b| a.borrow().ucb1(self.ucb1_coeff, logn_samples)
+                      .partial_cmp(&b.borrow().ucb1(self.ucb1_coeff, logn_samples))
+                    .unwrap_or(std::cmp::Ordering::Less));
+                let tmp = Rc::clone(node.borrow().children.last().unwrap());
+                node = tmp;
+            }
+        }
+
+        // choose the next root (now the root color is opponent's color)
+        let logn_samples = f64::ln(self.root.borrow().samples as f64);
+        self.root.borrow_mut().children
+            .sort_by(|a, b| a.borrow().ucb1(self.ucb1_coeff, logn_samples)
+              .partial_cmp(&b.borrow().ucb1(self.ucb1_coeff, logn_samples))
+            .unwrap_or(std::cmp::Ordering::Less));
+        let tmp = Rc::clone(self.root.borrow().children.last().unwrap());
+        self.root = tmp;
+        self.root.borrow_mut().parent = Weak::new(); // discard ancesters
+
+        if self.root.borrow().children.is_empty() {
+            expand_node(Rc::clone(&self.root));
+        }
+
+        console_log!("estimated win rate = {}.", self.root.borrow().win_rate());
+
+        // return the board in the root node
+        self.root.borrow().board.clone()
     }
 }
