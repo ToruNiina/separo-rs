@@ -1,6 +1,7 @@
 #![allow(dead_code, unused_imports)]
 
 // workaround for SystemTime::now in WASM
+// https://github.com/rust-lang/rust/issues/48564#issuecomment-505114709
 
 use wasm_bindgen::prelude::*;
 use std::convert::{TryInto};
