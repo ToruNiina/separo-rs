@@ -631,6 +631,7 @@ pub struct UCTMonteCarlo {
 #[derive(Debug, Clone)]
 struct UCTNode {
     win:      u32,
+    lose:     u32,
     samples:  u32,
     children: Vec<Rc<RefCell<UCTNode>>>,
     parent:   Weak<RefCell<UCTNode>>,
@@ -640,7 +641,7 @@ struct UCTNode {
 
 impl UCTNode {
     fn new(color: Color, board: Board) -> Self {
-        UCTNode{win: 0, samples: 0, children: Vec::new(), parent: Weak::new(), color, board}
+        UCTNode{win: 0, lose: 0, samples: 0, children: Vec::new(), parent: Weak::new(), color, board}
     }
 
     fn win_rate(&self) -> f64 {
@@ -648,6 +649,13 @@ impl UCTNode {
             0.5 // no information, half-half.
         } else {
             self.win as f64 / self.samples as f64
+        }
+    }
+    fn lose_rate(&self) -> f64 {
+        if self.samples == 0 { // avoid NaN
+            0.5 // no information, half-half.
+        } else {
+            self.lose as f64 / self.samples as f64
         }
     }
 
@@ -715,10 +723,14 @@ impl UCTMonteCarlo {
     }
 
     pub fn play(&mut self, board: Board) -> Board {
+        if board.is_gameover() {
+            return board;
+        }
+
         // find the current state from the children of root node
         // (means: find opponent's move)
         let tmp = Rc::clone(self.root.borrow().children.iter()
-                        .find(|x| x.borrow().board.grids == board.grids).unwrap());
+            .find(|x| x.borrow().board.grids == board.grids).unwrap());
         self.root = tmp;
         self.root.borrow_mut().parent = Weak::new(); // discard ancesters
         assert_eq!(self.root.borrow().color, self.color);
@@ -729,11 +741,10 @@ impl UCTMonteCarlo {
             let mut node = Rc::clone(&self.root);
             let mut depth = 0;
             while !node.borrow().children.is_empty() {
-                let lnN = f64::ln(self.root.borrow().samples as f64);
-
+                let ln_n = f64::ln(self.root.borrow().samples as f64);
                 node.borrow_mut().children
-                    .sort_by(|a, b|   a.borrow().ucb1(self.ucb1_coeff, lnN)
-                        .partial_cmp(&b.borrow().ucb1(self.ucb1_coeff, lnN))
+                    .sort_by(|a, b|   a.borrow().ucb1(self.ucb1_coeff, ln_n)
+                        .partial_cmp(&b.borrow().ucb1(self.ucb1_coeff, ln_n))
                         .unwrap_or(std::cmp::Ordering::Less)
                     );
                 let tmp = Rc::clone(node.borrow().children.last().unwrap());
@@ -743,21 +754,27 @@ impl UCTMonteCarlo {
             let wins = node.borrow().board.clone()
                 .playout(node.borrow().color, &mut self.rng);
 
-            if wins != Some(node.borrow().color) {
+            if wins == Some(opponent_of(node.borrow().color)) {
                 node.borrow_mut().win += 1;
+            } else if wins == Some(node.borrow().color) {
+                node.borrow_mut().lose += 1;
             }
             node.borrow_mut().samples += 1;
 
             // do this after `samples += 1`
             if self.expand_threshold <= node.borrow().samples {
-                expand_node(&node);
+                if !node.borrow().board.is_gameover() {
+                    expand_node(&node);
+                }
             }
 
             while let Some(parent) = Rc::clone(&node).borrow().parent.upgrade() {
                 depth -= 1;
                 parent.borrow_mut().samples += 1;
-                if wins != Some(parent.borrow().color) {
+                if wins == Some(opponent_of(parent.borrow().color)) {
                     parent.borrow_mut().win += 1;
+                } else if wins == Some(parent.borrow().color) {
+                    parent.borrow_mut().lose += 1;
                 }
                 node = parent;
             }
@@ -766,21 +783,23 @@ impl UCTMonteCarlo {
 
         // choose the next root by chosing the node with max win rate
         self.root.borrow_mut().children
-            .sort_by(|a, b|   a.borrow().win_rate()
-                .partial_cmp(&b.borrow().win_rate())
+            .sort_by(|a, b|   (a.borrow().win_rate() - a.borrow().lose_rate())
+                .partial_cmp(&(b.borrow().win_rate() - b.borrow().lose_rate()))
                 .unwrap_or(std::cmp::Ordering::Less)
             );
 
         let tmp = Rc::clone(self.root.borrow().children.last().unwrap());
         self.root = tmp;
         self.root.borrow_mut().parent = Weak::new(); // discard ancesters
-        console_log!("{:?}, estimated win rate = {}.", self.color,
-                     self.root.borrow().win_rate());
+        console_log!("{:?}, estimated win rate = {}, lose rate = {}.", self.color,
+                     self.root.borrow().win_rate(), self.root.borrow().lose_rate());
 
-        if self.root.borrow().children.is_empty() {
+        if self.root.borrow().children.is_empty() &&
+          !self.root.borrow().board.is_gameover() {
             console_log!("root.children is empty. Too short time limit?");
         }
-        assert!(!self.root.borrow().children.is_empty());
+        assert!(!self.root.borrow().children.is_empty() ||
+                 self.root.borrow().board.is_gameover());
         // return the board in the root node
         self.root.borrow().board.clone()
     }
