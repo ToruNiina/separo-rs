@@ -435,6 +435,20 @@ impl Board {
         moves
     }
 
+    pub fn apply_move_if_possible(&mut self,
+        x1: i32, y1: i32, x2: i32, y2: i32, x3: i32, y3: i32, color: Color
+        ) -> bool {
+        let next_move = Move(Coord(x1 as i8, y1 as i8),
+                             Coord(x2 as i8, y2 as i8),
+                             Coord(x3 as i8, y3 as i8));
+        if self.is_valid_move(next_move, color) {
+            self.apply_move(next_move, color);
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn can_move(&self, turn: Color) -> bool {
         !self.possible_moves(turn).is_empty()
     }
@@ -444,11 +458,11 @@ impl Board {
         self.possible_moves(Color::Blue).is_empty()
     }
 
-    pub fn is_valid_move(&self, next_move: Move, turn: Color) -> bool {
+    fn is_valid_move(&self, next_move: Move, turn: Color) -> bool {
         self.possible_moves(turn).contains(&next_move)
     }
 
-    pub fn apply_move(&mut self, next_move: Move, turn: Color) {
+    fn apply_move(&mut self, next_move: Move, turn: Color) {
         assert!(self.is_valid_move(next_move, turn));
         // apply next_move to the board
 
