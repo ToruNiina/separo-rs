@@ -22,6 +22,17 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function mouseevent_to_xy(e) {
+    const x = Math.floor((e.offsetX + grid_width / 2 - board_margin)                 / grid_width);
+    const y = Math.floor((e.offsetY + grid_width / 2 - board_margin - canvas_header) / grid_width);
+    return {x:x, y:y};
+}
+function xy_to_pixel(xy) {
+    const pix_x = xy.x * grid_width + board_margin;
+    const pix_y = xy.y * grid_width + board_margin + canvas_header;
+    return {x:pix_x, y:pix_y};
+}
+
 let is_running = false;
 
 // since wasm compilation should happen asynchronous, the function should be async.
@@ -61,35 +72,122 @@ async function run() {
         return BigInt(Math.floor(Math.random() * 10000000))
     }
 
+    // to check human's move (There should be more sophisticated way...)
+    var is_humans_turn = false;
+    var humans_move    = [null, null, null];
+    var turn_color     = "Red";
+    canvas.addEventListener('mousemove', function(e) {
+        if(is_humans_turn) {
+            if(humans_move[0] != null &&
+               humans_move[1] == null && humans_move[2] == null) {
+                let current_pos = mouseevent_to_xy(e);
+                // diagonal
+                if(Math.abs(current_pos.x - humans_move[0].x) == 1 &&
+                   Math.abs(current_pos.y - humans_move[0].y) == 1) {
+                    humans_move[1] = current_pos;
+                    console.log("mouse move detected: ", humans_move[1]);
+                    // draw temporary
+                    var pix = xy_to_pixel(humans_move[1]);
+                    drawTemporary(context, pix);
+                }
+            } else if(humans_move[0] != null &&
+                      humans_move[1] != null && humans_move[2] == null) {
+                // just show the last stone while chosing it.
+                // It does not actually move a stone.
+                let current_pos = mouseevent_to_xy(e);
+                drawBoard(context, JSON.parse(separo.to_json()),
+                    separo.score(0), separo.score(1), turn_color + "'s turn");
+                drawTemporary(context, xy_to_pixel(humans_move[0]));
+                drawTemporary(context, xy_to_pixel(humans_move[1]));
+                drawTemporary(context, xy_to_pixel(current_pos));
+            }
+        }
+    });
+
+    const human_player = function(color) {
+        return async function(board) {
+            console.log("human.play() function started");
+            if(!board.can_move(color)) {
+                console.log("You cannot move. return.");
+                return board;
+            }
+            is_humans_turn = true;
+            while (true) {
+                drawBoard(context, JSON.parse(board.to_json()),
+                          board.score(0), board.score(1), turn_color + "'s turn");
+                console.log("waiting human...");
+
+                canvas.addEventListener('mousedown', function(e) {
+                    humans_move[0] = mouseevent_to_xy(e);
+                    console.log("mouse down detected: ", humans_move[0]);
+
+                    // draw temporary
+                    var pix = xy_to_pixel(humans_move[0]);
+                    drawTemporary(context, pix);
+                }, {once: true});
+
+                var mouse_upped = false;
+                canvas.addEventListener('mouseup', function(e) {
+                    if(humans_move[0] != null && humans_move[1] != null) {
+                        humans_move[2] = mouseevent_to_xy(e);
+                        console.log("mouse up detected: ", humans_move[2]);
+                    }
+                    mouse_upped = true;
+                }, {once: true});
+
+                while(!mouse_upped) {
+                    await sleep(200);
+                }
+
+                if(humans_move.includes(null)) {
+                    humans_move = [null, null, null];
+                    continue;
+                }
+
+                if(board.apply_move_if_possible(
+                    humans_move[0].x, humans_move[0].y,
+                    humans_move[1].x, humans_move[1].y,
+                    humans_move[2].x, humans_move[2].y, color)) {
+                    break;
+                }
+                humans_move = [null, null, null];
+            }
+            console.log("done.");
+            humans_move    = [null, null, null];
+            is_humans_turn = false;
+            return board;
+        }
+    };
+
     if(player_R == "Random") {
         playerR = module.RandomPlayer.new(0, gen_seed());
     } else if (player_R == "Naive MC") {
         playerR = module.NaiveMonteCarlo.new(0, gen_seed(), time_limit);
     } else if (player_R == "UCT MC") {
-        playerR = module.UCTMonteCarlo.new(0, gen_seed(), time_limit, 1.41421356, 1, board_size);
+        playerR = module.UCTMonteCarlo.new(0, gen_seed(), time_limit, 1.4, 3, board_size);
     } else {
-        is_running = false;
-        return;
+        playerR = {play: human_player(0)};
     }
     if(player_B == "Random") {
         playerB = module.RandomPlayer.new(1, gen_seed());
     } else if (player_B == "Naive MC") {
         playerB = module.NaiveMonteCarlo.new(1, gen_seed(), time_limit);
     } else if (player_B == "UCT MC") {
-        playerB = module.UCTMonteCarlo.new(1, gen_seed(), time_limit, 1.41421356, 1, board_size);
+        playerB = module.UCTMonteCarlo.new(1, gen_seed(), time_limit, 1.4, 3, board_size);
     } else {
-        is_running = false;
-        return;
+        playerB = {play: human_player(1)};
     }
 
     while(!separo.is_gameover()) {
-        separo = playerR.play(separo);
+        turn_color = "Red";
+        separo = await playerR.play(separo);
 
         drawBoard(context, JSON.parse(separo.to_json()),
                   separo.score(0), separo.score(1), "Blue's turn");
         await sleep(100);
 
-        separo = playerB.play(separo);
+        turn_color = "Blue";
+        separo = await playerB.play(separo);
 
         drawBoard(context, JSON.parse(separo.to_json()),
                   separo.score(0), separo.score(1), "Red's turn");
@@ -98,9 +196,14 @@ async function run() {
 
     var last_score_red  = separo.score(0);
     var last_score_blue = separo.score(1);
+    var result = "draw!";
+    if (last_score_blue < last_score_red) {
+        result = "Red wins!";
+    } else if (last_score_red < last_score_blue) {
+        result = "Blue wins!";
+    }
     drawBoard(context, JSON.parse(separo.to_json()),
-              last_score_red, last_score_blue,
-              last_score_red > last_score_blue ? "Red wins!" : "Blue wins!");
+              last_score_red, last_score_blue, result);
     is_running = false;
     return;
 }
@@ -122,7 +225,6 @@ function drawBoard(context, board, red_score, blue_score, msg) {
                      canvas_width / 2, 40.0);
 
     context.fillText(msg, canvas_width / 2, 70.0);
-
 
     // draw grid
     context.strokeStyle=grid_color;
@@ -159,6 +261,18 @@ function drawStone(context, x, y, color_idx) {
                 stone_radius, 0, 2 * Math.PI, false);
     context.fill();
     context.stroke();
+}
+
+function drawTemporary(context, pix) {
+    context.strokeStyle = "rgb(0,0,0)";
+    context.lineWidth = 2;
+    context.setLineDash([4,4]);
+
+    context.beginPath();
+    context.arc(pix.x, pix.y, stone_radius, 0, 2 * Math.PI, false);
+    context.stroke();
+
+    context.setLineDash([]);
 }
 
 function drawRoot(context, x1, y1, x2, y2, color_idx) {
