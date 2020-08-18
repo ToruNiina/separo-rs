@@ -708,6 +708,15 @@ fn expand_node(node_ptr: &Rc<RefCell<UCTNode>>) {
     assert!(0 < node.children.len());
 }
 
+// fn count_node_and_depth(root: Rc<RefCell<UCTNode>>, depth: usize) -> (usize, usize) {
+//     if root.borrow().children.is_empty() {
+//         return (1, depth);
+//     }
+//     root.borrow().children.iter()
+//         .map(|node| count_node_and_depth(Rc::clone(node), depth+1))
+//         .fold((1, depth), |(n1, d1), (n2, d2)| (n1+n2, usize::max(d1,d2)))
+// }
+
 #[wasm_bindgen]
 impl UCTMonteCarlo {
     pub fn new(color: Color, seed: u64, timelimit: u64, ucb1_coeff: f64, expand_threshold: u32, board_width: usize) -> Self {
@@ -794,6 +803,14 @@ impl UCTMonteCarlo {
             }
             assert_eq!(depth, 0);
         }
+
+        // performance log
+//         {
+//             console_log!("{} samples used to estimate win/lose rate",
+//                          self.root.borrow().samples);
+//             let (n, d) = count_node_and_depth(Rc::clone(&self.root), 1);
+//             console_log!("{} nodes with depth {} is used", n, d);
+//         }
 
         // choose the next root by chosing the node with max win rate
         self.root.borrow_mut().children
