@@ -234,7 +234,7 @@ impl Graph {
             assert!(y <= i8::MAX as usize);
 
             let crd = Coord(x as i8, y as i8);
-            if 4 <= self.find_connected_component(region, crd, pos) {
+            if 4 < self.find_connected_component(region, crd, pos) {
                 score += 1;
             }
             region += 1;
