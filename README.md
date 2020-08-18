@@ -3,7 +3,7 @@
 Separoは[@gfngfn](https://github.com/gfngfn)によって考案された2人対戦用ボードゲームです。
 ルールの詳細は、@gfngfnの個人ウェブページ[佛陀ヶ谷](http://buddhagaja.soregashi.com/boardgame.html#jump_boardgame_separo)で配布されています。
 
-![終局図1](https://github.com/ToruNiina/separo-rs/blob/master/separo.png)
+[![終局図1](https://github.com/ToruNiina/separo-rs/blob/master/separo.png)](https://toruniina.github.io/separo-rs/)
 
 Separo-rsは、Separoをプレイするソフトウェアと、Webインターフェースを提供します。
 ソフトウェアと対局できるほか、ソフトウェア同士の対局を見守ったり、人間が交互にプレイすることも可能です。
