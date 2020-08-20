@@ -525,6 +525,26 @@ impl Board {
         }
         format!("{{\"stones\":[{}],\"roots\":[{}]}}", stones, roots).to_string()
     }
+    pub fn possible_moves_as_json(&self) -> String {
+        let mut roots = "[".to_string();
+        for Move(Coord(x1,y1), Coord(x2,y2), Coord(x3,y3)) in self.possible_moves(Color::Red) {
+            roots += &format!("{{\"x1\":{},\"y1\":{},\"x2\":{},\"y2\":{},\"color\":{}}},",
+                               x1, y1, x2, y2, 0);
+            roots += &format!("{{\"x1\":{},\"y1\":{},\"x2\":{},\"y2\":{},\"color\":{}}},",
+                               x2, y2, x3, y3, 0);
+        }
+        for Move(Coord(x1,y1), Coord(x2,y2), Coord(x3,y3)) in self.possible_moves(Color::Blue) {
+            roots += &format!("{{\"x1\":{},\"y1\":{},\"x2\":{},\"y2\":{},\"color\":{}}},",
+                               x1, y1, x2, y2, 1);
+            roots += &format!("{{\"x1\":{},\"y1\":{},\"x2\":{},\"y2\":{},\"color\":{}}},",
+                               x2, y2, x3, y3, 1);
+        }
+        if 1 < roots.len() { // len == 1 means "[", i.e. no possible moves.
+            roots.pop();     // remove trailing comma
+        }
+        roots += "]";
+        roots
+    }
 
     fn playout<R:Rng>(&mut self, init_turn: Color, rng: &mut R) -> Option<Color> {
         let next_turn = opponent_of(init_turn);
