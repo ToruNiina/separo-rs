@@ -60,10 +60,10 @@ async function run() {
     console.log("player red  = ", player_R);
     console.log("player blue = ", player_B);
 
-    drawBoard(context, separo, "Select players and Click \"Start\"");
+    drawBoard(context, separo, player_R, player_B, "Select players and Click \"Start\"");
     guide_checkbox.addEventListener('input', function(e) {
         draw_guide = guide_checkbox.checked;
-        drawBoard(context, separo, draw_guide ? "guide turned on" : "guide turned off");
+        drawBoard(context, separo, player_R, player_B, draw_guide ? "guide turned on" : "guide turned off");
     });
 
     if(player_R == "NotSelected" || player_B == "NotSelected") {
@@ -101,7 +101,7 @@ async function run() {
                 // just show the last stone while chosing it.
                 // It does not actually move a stone.
                 let current_pos = mouseevent_to_xy(e);
-                drawBoard(context, separo, turn_color + "'s turn");
+                drawBoard(context, separo, player_R, player_B, turn_color + "'s turn");
                 drawTemporaryStone(context, xy_to_pixel(humans_move[0]));
                 drawTemporaryStone(context, xy_to_pixel(humans_move[1]));
                 drawTemporaryStone(context, xy_to_pixel(current_pos));
@@ -118,7 +118,7 @@ async function run() {
             }
             is_humans_turn = true;
             while (true) {
-                drawBoard(context, board, turn_color + "'s turn");
+                drawBoard(context, board, player_R, player_B, turn_color + "'s turn");
                 console.log("waiting human...");
 
                 canvas.addEventListener('mousedown', function(e) {
@@ -186,13 +186,13 @@ async function run() {
         turn_color = "Red";
         separo = await playerR.play(separo);
 
-        drawBoard(context, separo, "Blue's turn");
+        drawBoard(context, separo, player_R, player_B, "Blue's turn");
         await sleep(100);
 
         turn_color = "Blue";
         separo = await playerB.play(separo);
 
-        drawBoard(context, separo, "Red's turn");
+        drawBoard(context, separo, player_R, player_B, "Red's turn");
         await sleep(100);
     }
 
@@ -204,12 +204,12 @@ async function run() {
     } else if (last_score_red < last_score_blue) {
         result = "Blue wins!";
     }
-    drawBoard(context, separo, result);
+    drawBoard(context, separo, player_R, player_B, result);
     is_running = false;
     return;
 }
 
-function drawBoard(context, board, msg) {
+function drawBoard(context, board, red_name, blue_name, msg) {
 
     const board_state = JSON.parse(board.to_json());
     const red_score  = board.score(0);
@@ -224,12 +224,21 @@ function drawBoard(context, board, msg) {
     context.fillRect(0, 0, canvas_width, canvas_height);
 
     // show current score
-    context.fillStyle = "rgb(0,0,0)"
     context.font      = "20px sans-serif"
-    context.textAlign = "center"
-    context.fillText(`Red: ${red_score} | Blue: ${blue_score}`,
-                     canvas_width / 2, 40.0);
+    var metrics = context.measureText(" | ");
+    context.fillStyle = stroke_colors[0];
+    context.textAlign = "right";
+    context.fillText(`${red_name}: ${red_score}`,
+                     (canvas_width - metrics.width)/ 2, 40.0);
 
+    context.fillStyle = stroke_colors[1];
+    context.textAlign = "left";
+    context.fillText(`${blue_name}: ${blue_score}`,
+                     (canvas_width + metrics.width)/ 2, 40.0);
+
+    context.fillStyle = "rgb(0,0,0)"
+    context.textAlign = "center"
+    context.fillText("|", canvas_width / 2, 40.0);
     context.fillText(msg, canvas_width / 2, 70.0);
 
     // draw grid
