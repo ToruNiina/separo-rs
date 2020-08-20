@@ -18,6 +18,9 @@ const blue_color = 1;
 const fill_colors   = ['rgba(255,128,128,0.95)', 'rgba(128,128,255,0.95)'];
 const stroke_colors = ['rgb(255,0,0)', 'rgb(0,0,255)'];
 
+const guide_checkbox = document.getElementById("guide");
+var draw_guide = guide_checkbox.checked;
+
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -57,8 +60,11 @@ async function run() {
     console.log("player red  = ", player_R);
     console.log("player blue = ", player_B);
 
-    drawBoard(context, JSON.parse(separo.to_json()), player_R, player_B,
-              separo.score(0), separo.score(1), "Select players");
+    drawBoard(context, separo, player_R, player_B, "Select players and Click \"Start\"");
+    guide_checkbox.addEventListener('input', function(e) {
+        draw_guide = guide_checkbox.checked;
+        drawBoard(context, separo, player_R, player_B, draw_guide ? "guide turned on" : "guide turned off");
+    });
 
     if(player_R == "NotSelected" || player_B == "NotSelected") {
         is_running = false;
@@ -88,18 +94,17 @@ async function run() {
                     console.log("mouse move detected: ", humans_move[1]);
                     // draw temporary
                     var pix = xy_to_pixel(humans_move[1]);
-                    drawTemporary(context, pix);
+                    drawTemporaryStone(context, pix);
                 }
             } else if(humans_move[0] != null &&
                       humans_move[1] != null && humans_move[2] == null) {
                 // just show the last stone while chosing it.
                 // It does not actually move a stone.
                 let current_pos = mouseevent_to_xy(e);
-                drawBoard(context, JSON.parse(separo.to_json()), player_R, player_B,
-                    separo.score(0), separo.score(1), turn_color + "'s turn");
-                drawTemporary(context, xy_to_pixel(humans_move[0]));
-                drawTemporary(context, xy_to_pixel(humans_move[1]));
-                drawTemporary(context, xy_to_pixel(current_pos));
+                drawBoard(context, separo, player_R, player_B, turn_color + "'s turn");
+                drawTemporaryStone(context, xy_to_pixel(humans_move[0]));
+                drawTemporaryStone(context, xy_to_pixel(humans_move[1]));
+                drawTemporaryStone(context, xy_to_pixel(current_pos));
             }
         }
     });
@@ -113,8 +118,7 @@ async function run() {
             }
             is_humans_turn = true;
             while (true) {
-                drawBoard(context, JSON.parse(board.to_json()), player_R, player_B,
-                          board.score(0), board.score(1), turn_color + "'s turn");
+                drawBoard(context, board, player_R, player_B, turn_color + "'s turn");
                 console.log("waiting human...");
 
                 canvas.addEventListener('mousedown', function(e) {
@@ -123,7 +127,7 @@ async function run() {
 
                     // draw temporary
                     var pix = xy_to_pixel(humans_move[0]);
-                    drawTemporary(context, pix);
+                    drawTemporaryStone(context, pix);
                 }, {once: true});
 
                 var mouse_upped = false;
@@ -182,15 +186,13 @@ async function run() {
         turn_color = "Red";
         separo = await playerR.play(separo);
 
-        drawBoard(context, JSON.parse(separo.to_json()), player_R, player_B,
-                  separo.score(0), separo.score(1), "Blue's turn");
+        drawBoard(context, separo, player_R, player_B, "Blue's turn");
         await sleep(100);
 
         turn_color = "Blue";
         separo = await playerB.play(separo);
 
-        drawBoard(context, JSON.parse(separo.to_json()), player_R, player_B,
-                  separo.score(0), separo.score(1), "Red's turn");
+        drawBoard(context, separo, player_R, player_B, "Red's turn");
         await sleep(100);
     }
 
@@ -202,16 +204,20 @@ async function run() {
     } else if (last_score_red < last_score_blue) {
         result = "Blue wins!";
     }
-    drawBoard(context, JSON.parse(separo.to_json()), player_R, player_B,
-              last_score_red, last_score_blue, result);
+    drawBoard(context, separo, player_R, player_B, result);
     is_running = false;
     return;
 }
 
-function drawBoard(context, board, red_name, blue_name, red_score, blue_score, msg) {
+function drawBoard(context, board, red_name, blue_name, msg) {
 
-    const stones = board["stones"];
-    const roots  = board["roots"];
+    const board_state = JSON.parse(board.to_json());
+    const red_score  = board.score(0);
+    const blue_score = board.score(1);
+
+    const stones = board_state["stones"];
+    const roots  = board_state["roots"];
+
     // clear the board before redraw
     context.clearRect(0, 0, canvas_width, canvas_height);
     context.fillStyle=board_color;
@@ -257,6 +263,13 @@ function drawBoard(context, board, red_name, blue_name, red_score, blue_score, m
     roots.forEach(function(root) {
         drawRoot(context, root["x1"], root["y1"], root["x2"], root["y2"], root["color"]);
     });
+
+    if(draw_guide) {
+        JSON.parse(board.possible_moves_as_json()).forEach(function(root) {
+            drawTemporaryRoot(context, root["x1"], root["y1"],
+                                       root["x2"], root["y2"], root["color"]);
+        });
+    }
 }
 
 function drawStone(context, x, y, color_idx) {
@@ -272,12 +285,13 @@ function drawStone(context, x, y, color_idx) {
     context.stroke();
 }
 
-function drawTemporary(context, pix) {
+function drawTemporaryStone(context, pix) {
+    context.beginPath();
+
     context.strokeStyle = "rgb(0,0,0)";
     context.lineWidth = 2;
     context.setLineDash([4,4]);
 
-    context.beginPath();
     context.arc(pix.x, pix.y, stone_radius, 0, 2 * Math.PI, false);
     context.stroke();
 
@@ -295,6 +309,22 @@ function drawRoot(context, x1, y1, x2, y2, color_idx) {
     context.moveTo(x1 * grid_width + board_margin, y1 * grid_width + board_margin + canvas_header);
     context.lineTo(x2 * grid_width + board_margin, y2 * grid_width + board_margin + canvas_header);
     context.stroke();
+}
+
+function drawTemporaryRoot(context, x1, y1, x2, y2, color_idx) {
+    context.beginPath();
+
+    context.strokeStyle = color_idx == 0 ? "rgba(255,0,0,0.9)" : "rgba(0,0,255,0.9)";
+    context.lineWidth = 5;
+    context.setLineDash([10]);
+    context.lineCap = 'round';
+
+    context.beginPath();
+    context.moveTo(x1 * grid_width + board_margin, y1 * grid_width + board_margin + canvas_header);
+    context.lineTo(x2 * grid_width + board_margin, y2 * grid_width + board_margin + canvas_header);
+    context.stroke();
+
+    context.setLineDash([]);
 }
 
 document.getElementById("start-button").onclick = run;
