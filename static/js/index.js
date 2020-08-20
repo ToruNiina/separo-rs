@@ -8,7 +8,7 @@ const grid_width   = board_width / (board_size - 1);
 const stone_radius =  grid_width * 0.3;
 const stone_stroke =   2;
 const root_stroke  =   5;
-const time_limit   =   1n;
+const time_limit   =   1;
 
 const board_color = "rgb(255,255,255)";
 const grid_color  = "rgb(0,0,0)";
@@ -73,7 +73,7 @@ async function run(module) {
     let playerB;
 
     let gen_seed = function() {
-        return BigInt(Math.floor(Math.random() * 10000000))
+        return Math.floor(Math.random() * 4294967296)
     }
 
     // to check human's move (There should be more sophisticated way...)
@@ -162,20 +162,20 @@ async function run(module) {
     };
 
     if(player_R == "Random") {
-        playerR = module.RandomPlayer.new(0, gen_seed());
+        playerR = module.RandomPlayer.new(0, gen_seed(), gen_seed());
     } else if (player_R == "Naive MC") {
-        playerR = module.NaiveMonteCarlo.new(0, gen_seed(), time_limit);
+        playerR = module.NaiveMonteCarlo.new(0, gen_seed(), gen_seed(), time_limit);
     } else if (player_R == "UCT MC") {
-        playerR = module.UCTMonteCarlo.new(0, gen_seed(), time_limit, 1.4, 3, board_size);
+        playerR = module.UCTMonteCarlo.new(0, gen_seed(), gen_seed(), time_limit, 1.4, 3, board_size);
     } else {
         playerR = {play: human_player(0)};
     }
     if(player_B == "Random") {
-        playerB = module.RandomPlayer.new(1, gen_seed());
+        playerB = module.RandomPlayer.new(1, gen_seed(), gen_seed());
     } else if (player_B == "Naive MC") {
-        playerB = module.NaiveMonteCarlo.new(1, gen_seed(), time_limit);
+        playerB = module.NaiveMonteCarlo.new(1, gen_seed(), gen_seed(), time_limit);
     } else if (player_B == "UCT MC") {
-        playerB = module.UCTMonteCarlo.new(1, gen_seed(), time_limit, 1.4, 3, board_size);
+        playerB = module.UCTMonteCarlo.new(1, gen_seed(), gen_seed(), time_limit, 1.4, 3, board_size);
     } else {
         playerB = {play: human_player(1)};
     }
