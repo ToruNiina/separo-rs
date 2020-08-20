@@ -38,12 +38,10 @@ function xy_to_pixel(xy) {
 
 let is_running = false;
 
-// since wasm compilation should happen asynchronous, the function should be async.
-async function run() {
+async function run(module) {
     if(is_running) {return;}
     is_running = true;
 
-    let module = await import('../pkg/index.js');
     let separo = module.Board.new(board_size);
     let canvas = document.getElementById("separo-board");
 
@@ -326,6 +324,3 @@ function drawTemporaryRoot(context, x1, y1, x2, y2, color_idx) {
 
     context.setLineDash([]);
 }
-
-document.getElementById("start-button").onclick = run;
-run();

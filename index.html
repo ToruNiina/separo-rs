@@ -65,6 +65,19 @@
         ルール違反となる手は適用されません。間違えてクリックした場合は遠く離れたところでボタンを離すなどでルール違反の手を作り、キャンセルしてください。
       </p>
     </div>
-    <script type="text/javascript" src="index.js"></script>
+    <script type="text/javascript" src="/js/index.js"></script>
+    <script type="module">
+      import init, * as module from '/pkg/separo_rs.js';
+
+      async function initialize() {
+        await init();
+        document.getElementById("start-button").onclick = function() {
+          run(module);
+        };
+        run(module);
+      }
+
+      initialize();
+    </script>
   </body>
 </html>
