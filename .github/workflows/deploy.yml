@@ -13,16 +13,18 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: true
-      - name: Setup
-        uses: actions/setup-node@v1
-        with:
-          node-version: 14
+      - name: Install tools
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Copy static to public
+        run: cp -r static public
       - name: Build
-        run: npm install && npm run build
+        run: wasm-pack build --target web --out-dir public/js
+      - name: Remove .gitignore added from wasm-pack
+        run: rm public/js/.gitignore
       - name: Publish
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
-          publish_dir: ./dist
+          publish_dir: ./public
           commit_message: ${{ github.event.head_commit.message }}
