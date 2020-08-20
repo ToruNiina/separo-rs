@@ -57,7 +57,7 @@ async function run() {
     console.log("player red  = ", player_R);
     console.log("player blue = ", player_B);
 
-    drawBoard(context, JSON.parse(separo.to_json()),
+    drawBoard(context, JSON.parse(separo.to_json()), player_R, player_B,
               separo.score(0), separo.score(1), "Select players");
 
     if(player_R == "NotSelected" || player_B == "NotSelected") {
@@ -95,7 +95,7 @@ async function run() {
                 // just show the last stone while chosing it.
                 // It does not actually move a stone.
                 let current_pos = mouseevent_to_xy(e);
-                drawBoard(context, JSON.parse(separo.to_json()),
+                drawBoard(context, JSON.parse(separo.to_json()), player_R, player_B,
                     separo.score(0), separo.score(1), turn_color + "'s turn");
                 drawTemporary(context, xy_to_pixel(humans_move[0]));
                 drawTemporary(context, xy_to_pixel(humans_move[1]));
@@ -113,7 +113,7 @@ async function run() {
             }
             is_humans_turn = true;
             while (true) {
-                drawBoard(context, JSON.parse(board.to_json()),
+                drawBoard(context, JSON.parse(board.to_json()), player_R, player_B,
                           board.score(0), board.score(1), turn_color + "'s turn");
                 console.log("waiting human...");
 
@@ -182,14 +182,14 @@ async function run() {
         turn_color = "Red";
         separo = await playerR.play(separo);
 
-        drawBoard(context, JSON.parse(separo.to_json()),
+        drawBoard(context, JSON.parse(separo.to_json()), player_R, player_B,
                   separo.score(0), separo.score(1), "Blue's turn");
         await sleep(100);
 
         turn_color = "Blue";
         separo = await playerB.play(separo);
 
-        drawBoard(context, JSON.parse(separo.to_json()),
+        drawBoard(context, JSON.parse(separo.to_json()), player_R, player_B,
                   separo.score(0), separo.score(1), "Red's turn");
         await sleep(100);
     }
@@ -202,13 +202,13 @@ async function run() {
     } else if (last_score_red < last_score_blue) {
         result = "Blue wins!";
     }
-    drawBoard(context, JSON.parse(separo.to_json()),
+    drawBoard(context, JSON.parse(separo.to_json()), player_R, player_B,
               last_score_red, last_score_blue, result);
     is_running = false;
     return;
 }
 
-function drawBoard(context, board, red_score, blue_score, msg) {
+function drawBoard(context, board, red_name, blue_name, red_score, blue_score, msg) {
 
     const stones = board["stones"];
     const roots  = board["roots"];
@@ -218,12 +218,21 @@ function drawBoard(context, board, red_score, blue_score, msg) {
     context.fillRect(0, 0, canvas_width, canvas_height);
 
     // show current score
-    context.fillStyle = "rgb(0,0,0)"
     context.font      = "20px sans-serif"
-    context.textAlign = "center"
-    context.fillText(`Red: ${red_score} | Blue: ${blue_score}`,
-                     canvas_width / 2, 40.0);
+    var metrics = context.measureText(" | ");
+    context.fillStyle = stroke_colors[0];
+    context.textAlign = "right";
+    context.fillText(`${red_name}: ${red_score}`,
+                     (canvas_width - metrics.width)/ 2, 40.0);
 
+    context.fillStyle = stroke_colors[1];
+    context.textAlign = "left";
+    context.fillText(`${blue_name}: ${blue_score}`,
+                     (canvas_width + metrics.width)/ 2, 40.0);
+
+    context.fillStyle = "rgb(0,0,0)"
+    context.textAlign = "center"
+    context.fillText("|", canvas_width / 2, 40.0);
     context.fillText(msg, canvas_width / 2, 70.0);
 
     // draw grid
