@@ -1,0 +1,16 @@
+{
+  "name": "separo-rs",
+  "collaborators": [
+    "Toru Niina <niina.toru.68u@gmail.com>"
+  ],
+  "description": "A boardgame",
+  "version": "0.1.0",
+  "files": [
+    "separo_rs_bg.wasm",
+    "separo_rs.js",
+    "separo_rs.d.ts"
+  ],
+  "module": "separo_rs.js",
+  "types": "separo_rs.d.ts",
+  "sideEffects": false
+}
