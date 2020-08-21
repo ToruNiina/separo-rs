@@ -577,6 +577,10 @@ impl Board {
     }
 }
 
+fn convert_seed(seed0: u32, seed1: u32) -> u64 {
+    (seed0 as u64) + ((seed1 as u64) << 32)
+}
+
 #[wasm_bindgen]
 pub struct RandomPlayer {
     pub color: Color,
@@ -585,7 +589,8 @@ pub struct RandomPlayer {
 
 #[wasm_bindgen]
 impl RandomPlayer {
-    pub fn new(color: Color, seed: u64) -> Self {
+    pub fn new(color: Color, seed0: u32, seed1: u32) -> Self {
+        let seed = convert_seed(seed0, seed1);
         RandomPlayer{color, rng: rand::rngs::StdRng::seed_from_u64(seed)}
     }
     pub fn play(&mut self, mut board: Board) -> Board {
@@ -607,11 +612,12 @@ pub struct NaiveMonteCarlo {
 
 #[wasm_bindgen]
 impl NaiveMonteCarlo {
-    pub fn new(color: Color, seed: u64, timelimit: u64) -> Self {
+    pub fn new(color: Color, seed0: u32, seed1: u32, timelimit: u32) -> Self {
+        let seed = convert_seed(seed0, seed1);
         NaiveMonteCarlo{
             color,
             rng: rand::rngs::StdRng::seed_from_u64(seed),
-            time_limit: Duration::new(timelimit, 0)
+            time_limit: Duration::from_secs(timelimit as u64),
         }
     }
 
@@ -739,7 +745,8 @@ fn expand_node(node_ptr: &Rc<RefCell<UCTNode>>) {
 
 #[wasm_bindgen]
 impl UCTMonteCarlo {
-    pub fn new(color: Color, seed: u64, timelimit: u64, ucb1_coeff: f64, expand_threshold: u32, board_width: usize) -> Self {
+    pub fn new(color: Color, seed0: u32, seed1: u32, timelimit: u32, ucb1_coeff: f64, expand_threshold: u32, board_width: usize) -> Self {
+        let seed = convert_seed(seed0, seed1);
         let root = if color == Color::Red {
             // we need to init root with a board before starting...
             // play() function re-use the previous estimation.
@@ -758,7 +765,7 @@ impl UCTMonteCarlo {
         UCTMonteCarlo{
             color,
             rng: rand::rngs::StdRng::seed_from_u64(seed),
-            time_limit: Duration::new(timelimit, 0),
+            time_limit: Duration::from_secs(timelimit as u64),
             ucb1_coeff,
             expand_threshold,
             root,

@@ -26,21 +26,21 @@ Separo-rsは、Separoをプレイするソフトウェアと、Webインター�
 ### Prerequisites
 
 - Rust
-- Node.js
+- [wasm-pack](https://github.com/rustwasm/wasm-pack)
 
-### How to run in debug mode
+### How to build and run locally
 
-勝手にブラウザが開きます。変更があるとリロードされます。
+static/js/以下にwasmと幾つかのファイルが生成されます。
 
-```console
-$ npm start
 ```
-### How to build in release mode
+$ wasm-pack build --target web --out-dir static/js
+```
 
-dist/以下にWebページが生成されるので、そこで`http-server`とかを立ててください。
+ページを確認する際はstatic/以下でHTTPサーバーを立ててください。
+簡易なHTTPサーバーとしては[https](https://github.com/thecoshman/http)があります。
 
-```console
-$ npm run build
+```
+$ cd static && http
 ```
 
 ## Disclaimer
