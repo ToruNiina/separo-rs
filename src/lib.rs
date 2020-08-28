@@ -550,21 +550,18 @@ impl Board {
         let next_turn = opponent_of(init_turn);
         while !self.is_gameover() {
             {
-                let mut moves = self.possible_moves(init_turn);
-                moves.shuffle(rng);
-                if let Some(next_move) = moves.pop() {
-                    self.apply_move(next_move, init_turn)
+                let moves = self.possible_moves(init_turn);
+                if !moves.is_empty() {
+                    self.apply_move(moves[rng.gen_range(0, moves.len())], init_turn);
                 }
             }
             {
-                let mut moves = self.possible_moves(next_turn);
-                moves.shuffle(rng);
-                if let Some(next_move) = moves.pop() {
-                    self.apply_move(next_move, next_turn);
+                let moves = self.possible_moves(next_turn);
+                if !moves.is_empty() {
+                    self.apply_move(moves[rng.gen_range(0, moves.len())], next_turn);
                 }
             }
         }
-
         let red_score  = self.score(Color::Red);
         let blue_score = self.score(Color::Blue);
         if blue_score < red_score {
@@ -594,10 +591,9 @@ impl RandomPlayer {
         RandomPlayer{color, rng: rand::rngs::StdRng::seed_from_u64(seed)}
     }
     pub fn play(&mut self, mut board: Board) -> Board {
-        let mut moves = board.possible_moves(self.color);
-        moves.shuffle(&mut self.rng);
-        if let Some(next_move) = moves.pop() {
-            board.apply_move(next_move, self.color);
+        let moves = board.possible_moves(self.color);
+        if !moves.is_empty() {
+            board.apply_move(moves[self.rng.gen_range(0, moves.len())], self.color);
         }
         board
     }
