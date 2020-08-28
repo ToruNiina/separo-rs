@@ -463,7 +463,7 @@ impl Board {
     }
 
     fn apply_move(&mut self, next_move: Move, turn: Color) {
-        assert!(self.is_valid_move(next_move, turn));
+        debug_assert!(self.is_valid_move(next_move, turn));
         // apply next_move to the board
 
         let Move(stone1, stone2, stone3) = next_move;
