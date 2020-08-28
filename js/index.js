@@ -89,7 +89,7 @@ async function run(module) {
                 if(Math.abs(current_pos.x - humans_move[0].x) == 1 &&
                    Math.abs(current_pos.y - humans_move[0].y) == 1) {
                     humans_move[1] = current_pos;
-                    console.log("mouse move detected: ", humans_move[1]);
+//                     console.log("mouse move detected: ", humans_move[1]);
                     // draw temporary
                     var pix = xy_to_pixel(humans_move[1]);
                     drawTemporaryStone(context, pix);
@@ -109,19 +109,19 @@ async function run(module) {
 
     const human_player = function(color) {
         return async function(board) {
-            console.log("human.play() function started");
+//             console.log("human.play() function started");
             if(!board.can_move(color)) {
-                console.log("You cannot move. return.");
+//                 console.log("You cannot move. return.");
                 return board;
             }
             is_humans_turn = true;
             while (true) {
                 drawBoard(context, board, player_R, player_B, turn_color + "'s turn");
-                console.log("waiting human...");
+//                 console.log("waiting human...");
 
                 canvas.addEventListener('mousedown', function(e) {
                     humans_move[0] = mouseevent_to_xy(e);
-                    console.log("mouse down detected: ", humans_move[0]);
+//                     console.log("mouse down detected: ", humans_move[0]);
 
                     // draw temporary
                     var pix = xy_to_pixel(humans_move[0]);
@@ -132,7 +132,7 @@ async function run(module) {
                 canvas.addEventListener('mouseup', function(e) {
                     if(humans_move[0] != null && humans_move[1] != null) {
                         humans_move[2] = mouseevent_to_xy(e);
-                        console.log("mouse up detected: ", humans_move[2]);
+//                         console.log("mouse up detected: ", humans_move[2]);
                     }
                     mouse_upped = true;
                 }, {once: true});
@@ -154,7 +154,7 @@ async function run(module) {
                 }
                 humans_move = [null, null, null];
             }
-            console.log("done.");
+//             console.log("done.");
             humans_move    = [null, null, null];
             is_humans_turn = false;
             return board;
