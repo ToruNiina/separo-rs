@@ -316,11 +316,11 @@ pub struct Grid {
 }
 
 impl Grid {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Grid{color: None, roots: ArrayVec::new()}
     }
     // Note that it checks the direction of the roots but not the color.
-    pub fn is_valid_root(&self, dir: Dir) -> bool {
+    fn is_valid_root(&self, dir: Dir) -> bool {
         self.roots.iter()
             .find(|d| i8::abs(dir.0 - d.0) + i8::abs(dir.1 - d.1) <= 1)
             .is_none()
