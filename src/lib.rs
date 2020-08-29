@@ -320,7 +320,7 @@ impl Grid {
         Grid{color: None, roots: ArrayVec::new()}
     }
     // Note that it checks the direction of the roots but not the color.
-    pub fn is_legal_root(&self, dir: Dir) -> bool {
+    pub fn is_valid_root(&self, dir: Dir) -> bool {
         self.roots.iter()
             .find(|d| i8::abs(dir.0 - d.0) + i8::abs(dir.1 - d.1) <= 1)
             .is_none()
@@ -370,7 +370,7 @@ impl Board {
 
                     // check root collision at the first stone
                     // skip roots that forms 45 degree
-                    if !grid.is_legal_root(*dir1) {
+                    if !grid.is_valid_root(*dir1) {
                         continue;
                     }
 
@@ -389,14 +389,14 @@ impl Board {
                     // check root collision at the second stone
                     // Note that the direction from the second stone is opposite
                     // in sign.
-                    if !self.grids[idx2].is_legal_root(Dir(-dir1.0, -dir1.1)) {
+                    if !self.grids[idx2].is_valid_root(Dir(-dir1.0, -dir1.1)) {
                         continue;
                     }
                     // possible next roots
                     {
                         let dir2 = Dir(dir1.0, 0);
                         // check root collision at the second stone
-                        if !self.grids[idx2].is_legal_root(dir2) {
+                        if !self.grids[idx2].is_valid_root(dir2) {
                             continue;
                         }
                         // check stone/root collision at the third stone
@@ -406,7 +406,7 @@ impl Board {
                         if !(x3 < 0 || y3 < 0 || self.width as i8 <= x3 || self.width as i8 <= y3) {
                             let idx3 = x3 as usize * self.width as usize + y3 as usize;
                             if (self.grids[idx3].color == None || self.grids[idx3].color == Some(turn)) &&
-                                self.grids[idx3].is_legal_root(Dir(-dir2.0, -dir2.1)) {
+                                self.grids[idx3].is_valid_root(Dir(-dir2.0, -dir2.1)) {
                                 moves.push(Move(Coord(x1, y1), Coord(x2, y2), Coord(x3, y3)));
                             }
                         }
@@ -414,7 +414,7 @@ impl Board {
                     {
                         let dir2 = Dir(0, dir1.1);
                         // check root collision at the second stone
-                        if !self.grids[idx2].is_legal_root(dir2) {
+                        if !self.grids[idx2].is_valid_root(dir2) {
                             continue;
                         }
                         // check stone/root collision at the third stone
@@ -424,7 +424,7 @@ impl Board {
                         if !(x3 < 0 || y3 < 0 || self.width as i8 <= x3 || self.width as i8 <= y3) {
                             let idx3 = x3 as usize * self.width as usize + y3 as usize;
                             if (self.grids[idx3].color == None || self.grids[idx3].color == Some(turn)) &&
-                                self.grids[idx3].is_legal_root(Dir(-dir2.0, -dir2.1)) {
+                                self.grids[idx3].is_valid_root(Dir(-dir2.0, -dir2.1)) {
                                 moves.push(Move(Coord(x1, y1), Coord(x2, y2), Coord(x3, y3)));
                             }
                         }
