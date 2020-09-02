@@ -769,7 +769,7 @@ impl UCTMonteCarlo {
     }
 
     pub fn play(&mut self, board: Board) -> Board {
-        if board.is_gameover() {
+        if !board.can_move(self.color) {
             return board;
         }
 
