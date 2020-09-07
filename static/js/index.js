@@ -1,14 +1,13 @@
 const canvas_header = 100;
 const canvas_width  = 540;
 const canvas_height = 640;
-const board_size   =    9;
-const board_margin =  30;
-const board_width  = 480;
-const grid_width   = board_width / (board_size - 1);
-const stone_radius =  grid_width * 0.3;
+const board_margin  =  30;
+const board_width   = 480;
+var board_size   =    9;
+var grid_width   = board_width / (board_size - 1);
+var stone_radius =  grid_width * 0.3;
 const stone_stroke =   2;
 const root_stroke  =   5;
-const time_limit   =   1;
 
 const board_color = "rgb(255,255,255)";
 const grid_color  = "rgb(0,0,0)";
@@ -20,6 +19,7 @@ const stroke_colors = ['rgb(255,0,0)', 'rgb(0,0,255)'];
 
 const guide_checkbox = document.getElementById("guide");
 var draw_guide = guide_checkbox.checked;
+let is_running = false;
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -36,11 +36,25 @@ function xy_to_pixel(xy) {
     return {x:pix_x, y:pix_y};
 }
 
-let is_running = false;
+function update_board_size() {
+    board_size = Math.floor(document.getElementById("board-size").valueAsNumber);
+    grid_width = board_width / (board_size - 1);
+    stone_radius = grid_width * 0.3;
+}
+
+document.getElementById("board-size").addEventListener('input', function(e) {
+    if(is_running) {
+        return; // ignore change while playing a game
+    }
+    update_board_size();
+});
 
 async function run(module) {
     if(is_running) {return;}
     is_running = true;
+
+    // check current board size
+    update_board_size();
 
     let separo = module.Board.new(board_size);
     let canvas = document.getElementById("separo-board");
@@ -49,6 +63,8 @@ async function run(module) {
     canvas.height = canvas_height;
 
     var context = canvas.getContext('2d');
+
+    const time_limit = Math.floor(document.getElementById("time-limit").valueAsNumber);
 
     const player_setting_R = document.getElementById("red player" );
     const player_setting_B = document.getElementById("blue player");
@@ -187,6 +203,7 @@ async function run(module) {
         drawBoard(context, separo, player_R, player_B, "Blue's turn");
         await sleep(100);
 
+        // -------------------------------------------------------------------
         turn_color = "Blue";
         separo = await playerB.play(separo);
 
