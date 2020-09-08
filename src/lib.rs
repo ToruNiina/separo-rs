@@ -788,12 +788,11 @@ impl UCTMonteCarlo {
             let mut depth = 0;
             let logn = f64::ln(node.borrow().samples as f64);
             while !node.borrow().children.is_empty() {
-                node.borrow_mut().children
-                    .sort_by(|a, b|   a.borrow().ucb1(self.ucb1_coeff, logn)
+                let tmp = Rc::clone(node.borrow_mut().children.iter()
+                    .max_by(|a, b|    a.borrow().ucb1(self.ucb1_coeff, logn)
                         .partial_cmp(&b.borrow().ucb1(self.ucb1_coeff, logn))
-                        .unwrap_or(std::cmp::Ordering::Less)
-                    );
-                let tmp = Rc::clone(node.borrow().children.last().unwrap());
+                        .unwrap_or(std::cmp::Ordering::Less))
+                    .unwrap());
                 node = tmp;
                 depth += 1;
             }
@@ -803,6 +802,7 @@ impl UCTMonteCarlo {
             if wins == Some(opponent_of(node.borrow().color)) {
                 node.borrow_mut().win += 1;
             } else if wins == Some(node.borrow().color) {
+                // to distinguish draw and lose, it counts both wins and loses
                 node.borrow_mut().lose += 1;
             }
             node.borrow_mut().samples += 1;
@@ -836,13 +836,11 @@ impl UCTMonteCarlo {
 //         }
 
         // choose the next root by chosing the node with max win rate
-        self.root.borrow_mut().children
-            .sort_by(|a, b|   (a.borrow().win_rate() - a.borrow().lose_rate())
+        let tmp = Rc::clone(self.root.borrow_mut().children.iter()
+            .max_by(|a, b|    (a.borrow().win_rate() - a.borrow().lose_rate())
                 .partial_cmp(&(b.borrow().win_rate() - b.borrow().lose_rate()))
-                .unwrap_or(std::cmp::Ordering::Less)
-            );
-
-        let tmp = Rc::clone(self.root.borrow().children.last().unwrap());
+                .unwrap_or(std::cmp::Ordering::Less))
+            .unwrap());
         self.root = tmp;
         self.root.borrow_mut().parent = Weak::new(); // discard ancesters
         console_log!("{:?}, estimated win rate = {}, lose rate = {}.", self.color,
