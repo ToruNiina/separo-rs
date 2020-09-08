@@ -695,11 +695,11 @@ impl UCTNode {
         }
     }
 
-    fn ucb1(&self, coef: f64, logn_total_samples: f64) -> f64 {
+    fn ucb1(&self, coef: f64, logn: f64) -> f64 {
         if self.samples == 0 {
             f64::INFINITY
         } else {
-            self.win_rate() + coef * f64::sqrt(logn_total_samples / self.samples as f64)
+            self.win_rate() + coef * f64::sqrt(logn / self.samples as f64)
         }
     }
 }
@@ -786,11 +786,11 @@ impl UCTMonteCarlo {
         while Instant::now() < stop {
             let mut node = Rc::clone(&self.root);
             let mut depth = 0;
+            let logn = f64::ln(node.borrow().samples as f64);
             while !node.borrow().children.is_empty() {
-                let ln_n = f64::ln(self.root.borrow().samples as f64);
                 node.borrow_mut().children
-                    .sort_by(|a, b|   a.borrow().ucb1(self.ucb1_coeff, ln_n)
-                        .partial_cmp(&b.borrow().ucb1(self.ucb1_coeff, ln_n))
+                    .sort_by(|a, b|   a.borrow().ucb1(self.ucb1_coeff, logn)
+                        .partial_cmp(&b.borrow().ucb1(self.ucb1_coeff, logn))
                         .unwrap_or(std::cmp::Ordering::Less)
                     );
                 let tmp = Rc::clone(node.borrow().children.last().unwrap());
