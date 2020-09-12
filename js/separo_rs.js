@@ -388,7 +388,7 @@ async function init(input) {
         var ret = getStringFromWasm0(arg0, arg1);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbg_log_61ea781bd002cc41 = function(arg0) {
+    imports.wbg.__wbg_log_3bafd82835c6de6d = function(arg0) {
         console.log(getObject(arg0));
     };
     imports.wbg.__wbindgen_object_drop_ref = function(arg0) {
