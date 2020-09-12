@@ -125,7 +125,6 @@ async function run(module) {
                 humans_possible_moves.push(root["stones"]);
             }
         });
-        console.log("possible moves", humans_possible_moves);
     }
 
     function filter_possible_moves(index, next_move) {
