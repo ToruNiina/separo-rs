@@ -114,8 +114,25 @@ async function run(module) {
     // to check human's move (There should be more sophisticated way...)
     var is_humans_turn = false;
     var humans_move    = [null, null, null];
+    var humans_possible_moves = [];
     var turn_color     = "Red";
     let is_canceled = false;
+
+    function list_up_possible_moves(board, color) {
+        humans_possible_moves = [];
+        JSON.parse(board.possible_moves_as_json()).forEach(function(root) {
+            if (root["color"] == color) {
+                humans_possible_moves.push(root["stones"]);
+            }
+        });
+        console.log("possible moves", humans_possible_moves);
+    }
+
+    function filter_possible_moves(index, next_move) {
+        return humans_possible_moves.filter(move => {
+            return move[index].x == next_move.x && move[index].y == next_move.y;
+        });
+    }
 
     let md = new MobileDetect(window.navigator.userAgent);
     if (md.mobile() || md.tablet()) {
@@ -123,14 +140,29 @@ async function run(module) {
             if (is_humans_turn) {
                 if (humans_move[0] == null) {
                     humans_move[0] = touchevent_to_xy(e);
+                    humans_possible_moves = filter_possible_moves(0, humans_move[0]);
+                    if (humans_possible_moves.length == 0) {
+                        is_canceled = true;
+                        return;
+                    }
                     var pix = xy_to_pixel(humans_move[0]);
                     drawTemporaryStone(context, pix);
                 } else if (humans_move[1] == null) {
                     humans_move[1] = touchevent_to_xy(e);
+                    humans_possible_moves = filter_possible_moves(1, humans_move[1]);
+                    if (humans_possible_moves.length == 0) {
+                        is_canceled = true;
+                        return;
+                    }
                     var pix = xy_to_pixel(humans_move[1]);
                     drawTemporaryStone(context, pix);
                 } else if (humans_move[2] == null) {
                     humans_move[2] = touchevent_to_xy(e);
+                    humans_possible_moves = filter_possible_moves(2, humans_move[2]);
+                    if (humans_possible_moves.length == 0) {
+                        is_canceled = true;
+                        return;
+                    }
                     var pix = xy_to_pixel(humans_move[2]);
                     drawTemporaryStone(context, pix);
                 }
@@ -138,40 +170,54 @@ async function run(module) {
         });
     } else {
         canvas.addEventListener('mousemove', function(e) {
-            if(is_humans_turn) {
-                if(humans_move[0] != null &&
-                   humans_move[1] == null && humans_move[2] == null) {
-                    let current_pos = mouseevent_to_xy(e);
-                    // diagonal
-                    if(Math.abs(current_pos.x - humans_move[0].x) == 1 &&
-                       Math.abs(current_pos.y - humans_move[0].y) == 1) {
-                        humans_move[1] = current_pos;
-    //                     console.log("mouse move detected: ", humans_move[1]);
-                        // draw temporary
-                        var pix = xy_to_pixel(humans_move[1]);
-                        drawTemporaryStone(context, pix);
-                    }
-                } else if(humans_move[0] != null &&
-                          humans_move[1] != null && humans_move[2] == null) {
-                    // just show the last stone while chosing it.
-                    // It does not actually move a stone.
-                    let current_pos = mouseevent_to_xy(e);
-                    drawBoard(context, separo, player_R, player_B, turn_color + "'s turn");
-                    drawTemporaryStone(context, xy_to_pixel(humans_move[0]));
-                    drawTemporaryStone(context, xy_to_pixel(humans_move[1]));
-                    drawTemporaryStone(context, xy_to_pixel(current_pos));
+            if (!is_humans_turn || humans_move[0] == null || humans_move[2] != null) {
+                return;
+            }
+
+            if (humans_move[1] == null) {
+                let current_pos = mouseevent_to_xy(e);
+                filtered = filter_possible_moves(1, current_pos);
+                if (filtered.length == 0) {
+                    return;
                 }
+
+                humans_move[1] = current_pos;
+                humans_possible_moves = filtered;
+
+                // draw temporary
+                var pix = xy_to_pixel(humans_move[1]);
+                drawTemporaryStone(context, pix);
+            } else {
+                // just show the last stone while chosing it.
+                // It does not actually move a stone.
+                let current_pos = mouseevent_to_xy(e);
+                filtered = filter_possible_moves(2, current_pos);
+                if (filtered.length == 0) {
+                    return;
+                }
+
+                drawBoard(context, separo, player_R, player_B, turn_color + "'s turn");
+                drawTemporaryStone(context, xy_to_pixel(humans_move[0]));
+                drawTemporaryStone(context, xy_to_pixel(humans_move[1]));
+                drawTemporaryStone(context, xy_to_pixel(current_pos));
             }
         });
 
         canvas.addEventListener('mousedown', function(e) {
-            if (is_humans_turn) {
-                if (humans_move[0] == null) {
-                    humans_move[0] = mouseevent_to_xy(e);
-                    var pix = xy_to_pixel(humans_move[0]);
-                    drawTemporaryStone(context, pix);
-                }
+            if (!is_humans_turn || humans_move[0] != null) {
+                return;
             }
+
+            let current_pos = mouseevent_to_xy(e);
+            filtered = filter_possible_moves(0, current_pos);
+            if (filtered.length == 0) {
+                return;
+            }
+
+            humans_move[0] = current_pos;
+            humans_possible_moves = filtered;
+            var pix = xy_to_pixel(humans_move[0]);
+            drawTemporaryStone(context, pix);
         });
 
         canvas.addEventListener('mouseup', function(e) {
@@ -179,13 +225,22 @@ async function run(module) {
                 return;
             }
 
-            if (humans_move[0] != null && humans_move[1] != null && humans_move[2] == null) {
-                humans_move[2] = mouseevent_to_xy(e);
-                var pix = xy_to_pixel(humans_move[2]);
-                drawTemporaryStone(context, pix);
-            } else {
+            if (humans_move[0] == null || humans_move[1] == null) {
                 is_canceled = true;
+                return;
             }
+
+            let current_pos = mouseevent_to_xy(e);
+            filtered = filter_possible_moves(2, current_pos);
+            if (filtered.length == 0) {
+                is_canceled = true;
+                return;
+            }
+
+            humans_move[2] = current_pos;
+            humans_possible_moves = filtered;
+            var pix = xy_to_pixel(humans_move[2]);
+            drawTemporaryStone(context, pix);
         })
 
         canvas.addEventListener('mouseleave', function(e) {
@@ -207,11 +262,13 @@ async function run(module) {
             is_humans_turn = true;
 
             drawBoard(context, board, player_R, player_B, turn_color + "'s turn");
+            list_up_possible_moves(board, color);
             while (true) {
                 await sleep(200);
 
                 if (is_canceled) {
                     humans_move = [null, null, null];
+                    list_up_possible_moves(board, color);
                     drawBoard(context, board, player_R, player_B, turn_color + "'s turn");
                     is_canceled = false;
                     continue;
