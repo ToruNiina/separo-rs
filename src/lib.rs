@@ -2,6 +2,8 @@ use wasm_bindgen::prelude::*;
 
 use arrayvec::ArrayVec;
 use rand::prelude::*;
+use serde::Serialize;
+use serde_repr::Serialize_repr;
 
 use std::vec::Vec;
 use std::option::Option;
@@ -32,15 +34,15 @@ macro_rules! console_log {
 // Grid position. left-top: (0,0), right-bottom: (N,N).
 // We will never use 256x256 board. The max size would be 19x19. u8 is enough.
 #[wasm_bindgen]
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize)]
 pub struct Coord (i8, i8);
 
 #[wasm_bindgen]
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize)]
 pub struct Move (Coord, Coord, Coord);
 
 #[wasm_bindgen]
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize_repr)]
 #[repr(u8)]
 pub enum Color {
     Red  = 0,
@@ -526,24 +528,27 @@ impl Board {
         format!("{{\"stones\":[{}],\"roots\":[{}]}}", stones, roots).to_string()
     }
     pub fn possible_moves_as_json(&self) -> String {
-        let mut roots = "[".to_string();
-        for Move(Coord(x1,y1), Coord(x2,y2), Coord(x3,y3)) in self.possible_moves(Color::Red) {
-            roots += &format!("{{\"x1\":{},\"y1\":{},\"x2\":{},\"y2\":{},\"color\":{}}},",
-                               x1, y1, x2, y2, 0);
-            roots += &format!("{{\"x1\":{},\"y1\":{},\"x2\":{},\"y2\":{},\"color\":{}}},",
-                               x2, y2, x3, y3, 0);
+        #[derive(Serialize)]
+        struct PossibleMove {
+            stones: Move,
+            color: Color,
         }
-        for Move(Coord(x1,y1), Coord(x2,y2), Coord(x3,y3)) in self.possible_moves(Color::Blue) {
-            roots += &format!("{{\"x1\":{},\"y1\":{},\"x2\":{},\"y2\":{},\"color\":{}}},",
-                               x1, y1, x2, y2, 1);
-            roots += &format!("{{\"x1\":{},\"y1\":{},\"x2\":{},\"y2\":{},\"color\":{}}},",
-                               x2, y2, x3, y3, 1);
+
+        let mut moves = Vec::new();
+        for stones in self.possible_moves(Color::Red) {
+            moves.push(PossibleMove {
+                stones: stones,
+                color: Color::Red,
+            });
         }
-        if 1 < roots.len() { // len == 1 means "[", i.e. no possible moves.
-            roots.pop();     // remove trailing comma
+        for stones in self.possible_moves(Color::Blue) {
+            moves.push(PossibleMove {
+                stones: stones,
+                color: Color::Blue,
+            });
         }
-        roots += "]";
-        roots
+
+        serde_json::to_string(&moves).unwrap()
     }
 
     fn playout<R:Rng>(&mut self, init_turn: Color, rng: &mut R) -> Option<Color> {
@@ -883,32 +888,34 @@ mod tests {
         let moves_from_json: Value = serde_json::from_str(&board.possible_moves_as_json()).unwrap();
 
         for (i, Move(Coord(x1, y1), Coord(x2, y2), Coord(x3, y3))) in red_moves.iter().enumerate() {
-            assert_eq!(moves_from_json[i*2]["x1"].as_i64().unwrap(), *x1 as i64);
-            assert_eq!(moves_from_json[i*2]["y1"].as_i64().unwrap(), *y1 as i64);
-            assert_eq!(moves_from_json[i*2]["x2"].as_i64().unwrap(), *x2 as i64);
-            assert_eq!(moves_from_json[i*2]["y2"].as_i64().unwrap(), *y2 as i64);
-            assert_eq!(moves_from_json[i*2]["color"].as_i64().unwrap(), 0);
+            let stone1 = &moves_from_json[i]["stones"][0];
+            let stone2 = &moves_from_json[i]["stones"][1];
+            let stone3 = &moves_from_json[i]["stones"][2];
+            let color = &moves_from_json[i]["color"];
 
-            assert_eq!(moves_from_json[i*2+1]["x1"].as_i64().unwrap(), *x2 as i64);
-            assert_eq!(moves_from_json[i*2+1]["y1"].as_i64().unwrap(), *y2 as i64);
-            assert_eq!(moves_from_json[i*2+1]["x2"].as_i64().unwrap(), *x3 as i64);
-            assert_eq!(moves_from_json[i*2+1]["y2"].as_i64().unwrap(), *y3 as i64);
-            assert_eq!(moves_from_json[i*2+1]["color"].as_i64().unwrap(), 0);
+            assert_eq!(stone1[0].as_i64().unwrap(), *x1 as i64);
+            assert_eq!(stone1[1].as_i64().unwrap(), *y1 as i64);
+            assert_eq!(stone2[0].as_i64().unwrap(), *x2 as i64);
+            assert_eq!(stone2[1].as_i64().unwrap(), *y2 as i64);
+            assert_eq!(stone3[0].as_i64().unwrap(), *x3 as i64);
+            assert_eq!(stone3[1].as_i64().unwrap(), *y3 as i64);
+            assert_eq!(color.as_i64().unwrap(), 0);
         }
 
         for (i, Move(Coord(x1, y1), Coord(x2, y2), Coord(x3, y3))) in blue_moves.iter().enumerate() {
             let i = i + red_moves.len();
-            assert_eq!(moves_from_json[i*2]["x1"].as_i64().unwrap(), *x1 as i64);
-            assert_eq!(moves_from_json[i*2]["y1"].as_i64().unwrap(), *y1 as i64);
-            assert_eq!(moves_from_json[i*2]["x2"].as_i64().unwrap(), *x2 as i64);
-            assert_eq!(moves_from_json[i*2]["y2"].as_i64().unwrap(), *y2 as i64);
-            assert_eq!(moves_from_json[i*2]["color"].as_i64().unwrap(), 1);
+            let stone1 = &moves_from_json[i]["stones"][0];
+            let stone2 = &moves_from_json[i]["stones"][1];
+            let stone3 = &moves_from_json[i]["stones"][2];
+            let color = &moves_from_json[i]["color"];
 
-            assert_eq!(moves_from_json[i*2+1]["x1"].as_i64().unwrap(), *x2 as i64);
-            assert_eq!(moves_from_json[i*2+1]["y1"].as_i64().unwrap(), *y2 as i64);
-            assert_eq!(moves_from_json[i*2+1]["x2"].as_i64().unwrap(), *x3 as i64);
-            assert_eq!(moves_from_json[i*2+1]["y2"].as_i64().unwrap(), *y3 as i64);
-            assert_eq!(moves_from_json[i*2+1]["color"].as_i64().unwrap(), 1);
+            assert_eq!(stone1[0].as_i64().unwrap(), *x1 as i64);
+            assert_eq!(stone1[1].as_i64().unwrap(), *y1 as i64);
+            assert_eq!(stone2[0].as_i64().unwrap(), *x2 as i64);
+            assert_eq!(stone2[1].as_i64().unwrap(), *y2 as i64);
+            assert_eq!(stone3[0].as_i64().unwrap(), *x3 as i64);
+            assert_eq!(stone3[1].as_i64().unwrap(), *y3 as i64);
+            assert_eq!(color.as_i64().unwrap(), 1);
         }
     }
 }

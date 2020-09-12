@@ -281,8 +281,14 @@ function drawBoard(context, board, red_name, blue_name, msg) {
 
     if(draw_guide) {
         JSON.parse(board.possible_moves_as_json()).forEach(function(root) {
-            drawTemporaryRoot(context, root["x1"], root["y1"],
-                                       root["x2"], root["y2"], root["color"]);
+            let stone1 = root["stones"][0];
+            let stone2 = root["stones"][1];
+            let stone3 = root["stones"][2];
+            let color = root["color"];
+            drawTemporaryRoot(context, stone1[0], stone1[1],
+                                       stone2[0], stone2[1], color);
+            drawTemporaryRoot(context, stone2[0], stone2[1],
+                                       stone3[0], stone3[1], color);
         });
     }
 }
