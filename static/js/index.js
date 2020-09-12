@@ -285,10 +285,10 @@ function drawBoard(context, board, red_name, blue_name, msg) {
             let stone2 = root["stones"][1];
             let stone3 = root["stones"][2];
             let color = root["color"];
-            drawTemporaryRoot(context, stone1[0], stone1[1],
-                                       stone2[0], stone2[1], color);
-            drawTemporaryRoot(context, stone2[0], stone2[1],
-                                       stone3[0], stone3[1], color);
+            drawTemporaryRoot(context, stone1["x"], stone1["y"],
+                                       stone2["x"], stone2["y"], color);
+            drawTemporaryRoot(context, stone2["x"], stone2["y"],
+                                       stone3["x"], stone3["y"], color);
         });
     }
 }
