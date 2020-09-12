@@ -2,6 +2,8 @@ use wasm_bindgen::prelude::*;
 
 use arrayvec::ArrayVec;
 use rand::prelude::*;
+use serde::Serialize;
+use serde_repr::Serialize_repr;
 
 use std::vec::Vec;
 use std::option::Option;
@@ -32,15 +34,24 @@ macro_rules! console_log {
 // Grid position. left-top: (0,0), right-bottom: (N,N).
 // We will never use 256x256 board. The max size would be 19x19. u8 is enough.
 #[wasm_bindgen]
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct Coord (i8, i8);
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize)]
+pub struct Coord {
+    x: i8,
+    y: i8,
+}
+
+impl Coord {
+    fn new(x: i8, y: i8) -> Self {
+        Self { x, y }
+    }
+}
 
 #[wasm_bindgen]
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize)]
 pub struct Move (Coord, Coord, Coord);
 
 #[wasm_bindgen]
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize_repr)]
 #[repr(u8)]
 pub enum Color {
     Red  = 0,
@@ -109,7 +120,7 @@ impl Graph {
         // construct the whole graph
         for x in 0..ngrids as i8 {
             for y in 0..ngrids as i8 {
-                let crd = Coord(x, y);
+                let crd = Coord::new(x, y);
                 graph.at_mut(crd, NodePos::N).edges.push((crd, NodePos::E));
                 graph.at_mut(crd, NodePos::N).edges.push((crd, NodePos::W));
 
@@ -123,20 +134,20 @@ impl Graph {
                 graph.at_mut(crd, NodePos::W).edges.push((crd, NodePos::S));
 
                 if x != 0 {
-                    graph.at_mut(Coord(x,y), NodePos::W).edges
-                        .push((Coord(x-1,y), NodePos::E));
+                    graph.at_mut(Coord::new(x,y), NodePos::W).edges
+                        .push((Coord::new(x-1,y), NodePos::E));
                 }
                 if x != x_max {
-                    graph.at_mut(Coord(x,y), NodePos::E).edges
-                        .push((Coord(x+1,y), NodePos::W));
+                    graph.at_mut(Coord::new(x,y), NodePos::E).edges
+                        .push((Coord::new(x+1,y), NodePos::W));
                 }
                 if y != 0 {
-                    graph.at_mut(Coord(x,y), NodePos::N).edges
-                        .push((Coord(x,y-1), NodePos::S));
+                    graph.at_mut(Coord::new(x,y), NodePos::N).edges
+                        .push((Coord::new(x,y-1), NodePos::S));
                 }
                 if y != y_max {
-                    graph.at_mut(Coord(x,y), NodePos::S).edges
-                        .push((Coord(x,y+1), NodePos::N));
+                    graph.at_mut(Coord::new(x,y), NodePos::S).edges
+                        .push((Coord::new(x,y+1), NodePos::N));
                 }
             }
         }
@@ -148,23 +159,23 @@ impl Graph {
         let Move(stone1, stone2, stone3) = next_move;
 
         // first root
-        let dx = stone2.0 - stone1.0;
-        let dy = stone2.1 - stone1.1;
+        let dx = stone2.x - stone1.x;
+        let dy = stone2.y - stone1.y;
         match (dx, dy) {
             (1, 1) => {
                 self.remove_edge(stone1, NodePos::N, stone1, NodePos::W);
                 self.remove_edge(stone1, NodePos::S, stone1, NodePos::E);
             }
             (1, -1) => {
-                let pos = Coord(stone1.0, stone1.1 - 1);
-                if 0 <= pos.1 {
+                let pos = Coord::new(stone1.x, stone1.y - 1);
+                if 0 <= pos.y {
                     self.remove_edge(pos, NodePos::N, pos, NodePos::E);
                     self.remove_edge(pos, NodePos::S, pos, NodePos::W);
                 }
             }
             (-1, 1) => {
-                let pos = Coord(stone1.0 - 1, stone1.1);
-                if 0 <= pos.0 {
+                let pos = Coord::new(stone1.x - 1, stone1.y);
+                if 0 <= pos.x {
                     self.remove_edge(pos, NodePos::N, pos, NodePos::E);
                     self.remove_edge(pos, NodePos::S, pos, NodePos::W);
                 }
@@ -178,33 +189,33 @@ impl Graph {
             }
         }
         // second root
-        let dx = stone3.0 - stone2.0;
-        let dy = stone3.1 - stone2.1;
+        let dx = stone3.x - stone2.x;
+        let dy = stone3.y - stone2.y;
 
         let upper = self.ngrids as i8;
         match (dx, dy) {
             (1, 0) => {
-                if stone2.0 < upper && 1 <= stone2.1 && stone2.1 < upper {
-                    self.remove_edge(Coord(stone2.0, stone2.1-1), NodePos::S,
-                                           stone2,                NodePos::N);
+                if stone2.x < upper && 1 <= stone2.y && stone2.y < upper {
+                    self.remove_edge(Coord::new(stone2.x, stone2.y-1), NodePos::S,
+                                                stone2,                NodePos::N);
                 }
             }
             (-1, 0) => {
-                if stone3.0 < upper && 1 <= stone3.1 && stone3.1 < upper {
-                    self.remove_edge(Coord(stone3.0, stone3.1-1), NodePos::S,
-                                           stone3,                NodePos::N);
+                if stone3.x < upper && 1 <= stone3.y && stone3.y < upper {
+                    self.remove_edge(Coord::new(stone3.x, stone3.y-1), NodePos::S,
+                                                stone3,                NodePos::N);
                 }
             }
             (0, 1) => {
-                if 1 <= stone2.0 && stone2.0 < upper && stone2.1 < upper {
-                    self.remove_edge(Coord(stone2.0-1, stone2.1), NodePos::E,
-                                           stone2,                NodePos::W);
+                if 1 <= stone2.x && stone2.x < upper && stone2.y < upper {
+                    self.remove_edge(Coord::new(stone2.x-1, stone2.y), NodePos::E,
+                                                stone2,                NodePos::W);
                 }
             }
             (0, -1) => {
-                if 1 <= stone3.0 && stone3.0 < upper && stone3.1 < upper {
-                    self.remove_edge(Coord(stone3.0-1, stone3.1), NodePos::E,
-                                           stone3,                NodePos::W);
+                if 1 <= stone3.x && stone3.x < upper && stone3.y < upper {
+                    self.remove_edge(Coord::new(stone3.x-1, stone3.y), NodePos::E,
+                                                stone3,                NodePos::W);
                 }
             }
             _ => {
@@ -233,7 +244,7 @@ impl Graph {
             assert!(x <= i8::MAX as usize);
             assert!(y <= i8::MAX as usize);
 
-            let crd = Coord(x as i8, y as i8);
+            let crd = Coord::new(x as i8, y as i8);
             if 4 < self.find_connected_component(region, crd, pos) {
                 score += 1;
             }
@@ -269,8 +280,8 @@ impl Graph {
     }
 
     fn at(&self, coord: Coord, pos: NodePos) -> &Node {
-        let idx = ((coord.0 as usize) * (self.ngrids as usize) +
-                   (coord.1 as usize)) * 4 + match pos {
+        let idx = ((coord.x as usize) * (self.ngrids as usize) +
+                   (coord.y as usize)) * 4 + match pos {
             NodePos::N => 0,
             NodePos::E => 1,
             NodePos::S => 2,
@@ -280,8 +291,8 @@ impl Graph {
         &self.nodes[idx]
     }
     fn at_mut(&mut self, coord: Coord, pos: NodePos) -> &mut Node {
-        let idx = ((coord.0 as usize) * (self.ngrids as usize) +
-                   (coord.1 as usize)) * 4 + match pos {
+        let idx = ((coord.x as usize) * (self.ngrids as usize) +
+                   (coord.y as usize)) * 4 + match pos {
             NodePos::N => 0,
             NodePos::E => 1,
             NodePos::S => 2,
@@ -407,7 +418,7 @@ impl Board {
                             let idx3 = x3 as usize * self.width as usize + y3 as usize;
                             if (self.grids[idx3].color == None || self.grids[idx3].color == Some(turn)) &&
                                 self.grids[idx3].is_valid_root(Dir(-dir2.0, -dir2.1)) {
-                                moves.push(Move(Coord(x1, y1), Coord(x2, y2), Coord(x3, y3)));
+                                moves.push(Move(Coord::new(x1, y1), Coord::new(x2, y2), Coord::new(x3, y3)));
                             }
                         }
                     }
@@ -425,7 +436,7 @@ impl Board {
                             let idx3 = x3 as usize * self.width as usize + y3 as usize;
                             if (self.grids[idx3].color == None || self.grids[idx3].color == Some(turn)) &&
                                 self.grids[idx3].is_valid_root(Dir(-dir2.0, -dir2.1)) {
-                                moves.push(Move(Coord(x1, y1), Coord(x2, y2), Coord(x3, y3)));
+                                moves.push(Move(Coord::new(x1, y1), Coord::new(x2, y2), Coord::new(x3, y3)));
                             }
                         }
                     }
@@ -438,9 +449,9 @@ impl Board {
     pub fn apply_move_if_possible(&mut self,
         x1: i32, y1: i32, x2: i32, y2: i32, x3: i32, y3: i32, color: Color
         ) -> bool {
-        let next_move = Move(Coord(x1 as i8, y1 as i8),
-                             Coord(x2 as i8, y2 as i8),
-                             Coord(x3 as i8, y3 as i8));
+        let next_move = Move(Coord::new(x1 as i8, y1 as i8),
+                             Coord::new(x2 as i8, y2 as i8),
+                             Coord::new(x3 as i8, y3 as i8));
         if self.is_valid_move(next_move, color) {
             self.apply_move(next_move, color);
             true
@@ -468,18 +479,18 @@ impl Board {
 
         let Move(stone1, stone2, stone3) = next_move;
 
-        let idx1 = stone1.0 as usize * self.width as usize + stone1.1 as usize;
-        let idx2 = stone2.0 as usize * self.width as usize + stone2.1 as usize;
-        let idx3 = stone3.0 as usize * self.width as usize + stone3.1 as usize;
+        let idx1 = stone1.x as usize * self.width as usize + stone1.y as usize;
+        let idx2 = stone2.x as usize * self.width as usize + stone2.y as usize;
+        let idx3 = stone3.x as usize * self.width as usize + stone3.y as usize;
 
         self.grids[idx2].color = Some(turn);
         self.grids[idx3].color = Some(turn);
 
-        self.grids[idx1].roots.push(Dir(stone2.0 - stone1.0, stone2.1 - stone1.1));
-        self.grids[idx2].roots.push(Dir(stone1.0 - stone2.0, stone1.1 - stone2.1));
+        self.grids[idx1].roots.push(Dir(stone2.x - stone1.x, stone2.y - stone1.y));
+        self.grids[idx2].roots.push(Dir(stone1.x - stone2.x, stone1.y - stone2.y));
 
-        self.grids[idx2].roots.push(Dir(stone3.0 - stone2.0, stone3.1 - stone2.1));
-        self.grids[idx3].roots.push(Dir(stone2.0 - stone3.0, stone2.1 - stone3.1));
+        self.grids[idx2].roots.push(Dir(stone3.x - stone2.x, stone3.y - stone2.y));
+        self.grids[idx3].roots.push(Dir(stone2.x - stone3.x, stone2.y - stone3.y));
 
         // apply next_move to internal graph
         match turn {
@@ -496,54 +507,74 @@ impl Board {
     }
 
     pub fn to_json(&self) -> String {
-        let mut stones = String::new();
-        let mut roots  = String::new();
+        #[derive(Serialize)]
+        struct Stone {
+            x: i8,
+            y: i8,
+            color: i8,
+        }
+
+        #[derive(Serialize)]
+        struct Root {
+            x1: i8,
+            y1: i8,
+            x2: i8,
+            y2: i8,
+            color: i8,
+        }
+
+        #[derive(Serialize)]
+        struct BoardJson {
+            stones: Vec<Stone>,
+            roots: Vec<Root>,
+        }
+
+        let mut stones = Vec::new();
+        let mut roots  = Vec::new();
         for x in 0..self.width as i8 {
             for y in 0..self.width as i8 {
                 let idx = (x as usize) * (self.width as usize) + (y as usize);
                 if let Some(color) = self.grids[idx].color {
-                    let color_idx = if color == Color::Red {0} else {1};
+                    let color = color as i8;
+                    stones.push(Stone { x, y, color });
 
-                    // add stone
-                    let stone = format!("{{\"x\":{},\"y\":{},\"color\":{}}},", x, y, color_idx);
-                    stones += &stone;
-
-                    // add roots
                     for dir in self.grids[idx].roots.iter() {
-                        let root = format!("{{ \"x1\":{},\"y1\":{},\"x2\":{},\"y2\":{},\"color\":{} }},",
-                                           x, y, x + dir.0, y + dir.1, color_idx);
-                        roots += &root;
+                        roots.push(Root {
+                            x1: x,
+                            y1: y,
+                            x2: x + dir.0,
+                            y2: y + dir.1,
+                            color,
+                        });
                     }
                 }
             }
         }
-        if !stones.is_empty() {
-            stones.pop(); // remove trailing comma
-        }
-        if !roots.is_empty() {
-            roots.pop(); // remove trailing comma
-        }
-        format!("{{\"stones\":[{}],\"roots\":[{}]}}", stones, roots).to_string()
+
+        serde_json::to_string(&BoardJson { stones, roots }).unwrap()
     }
     pub fn possible_moves_as_json(&self) -> String {
-        let mut roots = "[".to_string();
-        for Move(Coord(x1,y1), Coord(x2,y2), Coord(x3,y3)) in self.possible_moves(Color::Red) {
-            roots += &format!("{{\"x1\":{},\"y1\":{},\"x2\":{},\"y2\":{},\"color\":{}}},",
-                               x1, y1, x2, y2, 0);
-            roots += &format!("{{\"x1\":{},\"y1\":{},\"x2\":{},\"y2\":{},\"color\":{}}},",
-                               x2, y2, x3, y3, 0);
+        #[derive(Serialize)]
+        struct PossibleMove {
+            stones: Move,
+            color: Color,
         }
-        for Move(Coord(x1,y1), Coord(x2,y2), Coord(x3,y3)) in self.possible_moves(Color::Blue) {
-            roots += &format!("{{\"x1\":{},\"y1\":{},\"x2\":{},\"y2\":{},\"color\":{}}},",
-                               x1, y1, x2, y2, 1);
-            roots += &format!("{{\"x1\":{},\"y1\":{},\"x2\":{},\"y2\":{},\"color\":{}}},",
-                               x2, y2, x3, y3, 1);
+
+        let mut moves = Vec::new();
+        for stones in self.possible_moves(Color::Red) {
+            moves.push(PossibleMove {
+                stones: stones,
+                color: Color::Red,
+            });
         }
-        if 1 < roots.len() { // len == 1 means "[", i.e. no possible moves.
-            roots.pop();     // remove trailing comma
+        for stones in self.possible_moves(Color::Blue) {
+            moves.push(PossibleMove {
+                stones: stones,
+                color: Color::Blue,
+            });
         }
-        roots += "]";
-        roots
+
+        serde_json::to_string(&moves).unwrap()
     }
 
     fn playout<R:Rng>(&mut self, init_turn: Color, rng: &mut R) -> Option<Color> {
@@ -854,5 +885,105 @@ impl UCTMonteCarlo {
                  self.root.borrow().board.is_gameover());
         // return the board in the root node
         self.root.borrow().board.clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::{json, Value};
+
+    #[test]
+    fn possible_moves() {
+        let board = Board::new(9);
+        let possibles = board.possible_moves(Color::Red);
+        assert_eq!(possibles.len(), 4);
+        assert!(possibles.contains(&Move(Coord::new(0, 0), Coord::new(1, 1), Coord::new(1, 2))));
+        assert!(possibles.contains(&Move(Coord::new(0, 0), Coord::new(1, 1), Coord::new(2, 1))));
+        assert!(possibles.contains(&Move(Coord::new(8, 8), Coord::new(7, 7), Coord::new(7, 6))));
+        assert!(possibles.contains(&Move(Coord::new(8, 8), Coord::new(7, 7), Coord::new(6, 7))));
+    }
+
+    #[test]
+    fn possible_moves_as_json() {
+        let board = Board::new(9);
+
+        let red_moves = board.possible_moves(Color::Red);
+        let blue_moves = board.possible_moves(Color::Blue);
+
+        let moves_from_json: Value = serde_json::from_str(&board.possible_moves_as_json()).unwrap();
+
+        for (i, Move(s1, s2, s3)) in red_moves.iter().enumerate() {
+            let stone1 = &moves_from_json[i]["stones"][0];
+            let stone2 = &moves_from_json[i]["stones"][1];
+            let stone3 = &moves_from_json[i]["stones"][2];
+            let color = &moves_from_json[i]["color"];
+
+            assert_eq!(stone1["x"].as_i64().unwrap(), s1.x as i64);
+            assert_eq!(stone1["y"].as_i64().unwrap(), s1.y as i64);
+            assert_eq!(stone2["x"].as_i64().unwrap(), s2.x as i64);
+            assert_eq!(stone2["y"].as_i64().unwrap(), s2.y as i64);
+            assert_eq!(stone3["x"].as_i64().unwrap(), s3.x as i64);
+            assert_eq!(stone3["y"].as_i64().unwrap(), s3.y as i64);
+            assert_eq!(color.as_i64().unwrap(), Color::Red as i64);
+        }
+
+        for (i, Move(s1, s2, s3)) in blue_moves.iter().enumerate() {
+            let i = i + red_moves.len();
+            let stone1 = &moves_from_json[i]["stones"][0];
+            let stone2 = &moves_from_json[i]["stones"][1];
+            let stone3 = &moves_from_json[i]["stones"][2];
+            let color = &moves_from_json[i]["color"];
+
+            assert_eq!(stone1["x"].as_i64().unwrap(), s1.x as i64);
+            assert_eq!(stone1["y"].as_i64().unwrap(), s1.y as i64);
+            assert_eq!(stone2["x"].as_i64().unwrap(), s2.x as i64);
+            assert_eq!(stone2["y"].as_i64().unwrap(), s2.y as i64);
+            assert_eq!(stone3["x"].as_i64().unwrap(), s3.x as i64);
+            assert_eq!(stone3["y"].as_i64().unwrap(), s3.y as i64);
+            assert_eq!(color.as_i64().unwrap(), Color::Blue as i64);
+        }
+    }
+
+    #[test]
+    fn to_json() {
+        let mut board = Board::new(9);
+
+        board.apply_move(Move(Coord::new(0, 0), Coord::new(1, 1), Coord::new(1, 2)), Color::Red);
+        board.apply_move(Move(Coord::new(0, 8), Coord::new(1, 7), Coord::new(1, 6)), Color::Blue);
+
+        let board_from_json: Value = serde_json::from_str(&board.to_json()).unwrap();
+        let stones = &board_from_json["stones"].as_array().unwrap();
+        let roots = &board_from_json["roots"].as_array().unwrap();
+
+        assert_eq!(stones.len(), 8);
+        let correct_stones = vec![
+            json!({"x": 0, "y": 0, "color": Color::Red}),
+            json!({"x": 1, "y": 1, "color": Color::Red}),
+            json!({"x": 1, "y": 2, "color": Color::Red}),
+            json!({"x": 8, "y": 8, "color": Color::Red}),
+            json!({"x": 0, "y": 8, "color": Color::Blue}),
+            json!({"x": 1, "y": 7, "color": Color::Blue}),
+            json!({"x": 1, "y": 6, "color": Color::Blue}),
+            json!({"x": 8, "y": 0, "color": Color::Blue}),
+        ];
+        for correct in correct_stones {
+            assert!(stones.contains(&correct));
+        }
+
+        assert_eq!(roots.len(), 4*2);
+        let correct_roots = vec![
+            json!({"x1": 0, "y1": 0, "x2": 1, "y2": 1, "color": Color::Red}),
+            json!({"x1": 1, "y1": 1, "x2": 0, "y2": 0, "color": Color::Red}),
+            json!({"x1": 1, "y1": 1, "x2": 1, "y2": 2, "color": Color::Red}),
+            json!({"x1": 1, "y1": 2, "x2": 1, "y2": 1, "color": Color::Red}),
+            json!({"x1": 0, "y1": 8, "x2": 1, "y2": 7, "color": Color::Blue}),
+            json!({"x1": 1, "y1": 7, "x2": 0, "y2": 8, "color": Color::Blue}),
+            json!({"x1": 1, "y1": 7, "x2": 1, "y2": 6, "color": Color::Blue}),
+            json!({"x1": 1, "y1": 6, "x2": 1, "y2": 7, "color": Color::Blue}),
+        ];
+        for correct in correct_roots {
+            assert!(roots.contains(&correct));
+        }
     }
 }
