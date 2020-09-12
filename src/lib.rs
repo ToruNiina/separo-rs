@@ -874,7 +874,7 @@ impl UCTMonteCarlo {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::Value;
+    use serde_json::{json, Value};
 
     #[test]
     fn possible_moves() {
@@ -925,6 +925,48 @@ mod tests {
             assert_eq!(stone3["x"].as_i64().unwrap(), s3.x as i64);
             assert_eq!(stone3["y"].as_i64().unwrap(), s3.y as i64);
             assert_eq!(color.as_i64().unwrap(), Color::Blue as i64);
+        }
+    }
+
+    #[test]
+    fn to_json() {
+        let mut board = Board::new(9);
+
+        board.apply_move(Move(Coord::new(0, 0), Coord::new(1, 1), Coord::new(1, 2)), Color::Red);
+        board.apply_move(Move(Coord::new(0, 8), Coord::new(1, 7), Coord::new(1, 6)), Color::Blue);
+
+        let board_from_json: Value = serde_json::from_str(&board.to_json()).unwrap();
+        let stones = &board_from_json["stones"].as_array().unwrap();
+        let roots = &board_from_json["roots"].as_array().unwrap();
+
+        assert_eq!(stones.len(), 8);
+        let correct_stones = vec![
+            json!({"x": 0, "y": 0, "color": Color::Red}),
+            json!({"x": 1, "y": 1, "color": Color::Red}),
+            json!({"x": 1, "y": 2, "color": Color::Red}),
+            json!({"x": 8, "y": 8, "color": Color::Red}),
+            json!({"x": 0, "y": 8, "color": Color::Blue}),
+            json!({"x": 1, "y": 7, "color": Color::Blue}),
+            json!({"x": 1, "y": 6, "color": Color::Blue}),
+            json!({"x": 8, "y": 0, "color": Color::Blue}),
+        ];
+        for correct in correct_stones {
+            assert!(stones.contains(&correct));
+        }
+
+        assert_eq!(roots.len(), 4*2);
+        let correct_roots = vec![
+            json!({"x1": 0, "y1": 0, "x2": 1, "y2": 1, "color": Color::Red}),
+            json!({"x1": 1, "y1": 1, "x2": 0, "y2": 0, "color": Color::Red}),
+            json!({"x1": 1, "y1": 1, "x2": 1, "y2": 2, "color": Color::Red}),
+            json!({"x1": 1, "y1": 2, "x2": 1, "y2": 1, "color": Color::Red}),
+            json!({"x1": 0, "y1": 8, "x2": 1, "y2": 7, "color": Color::Blue}),
+            json!({"x1": 1, "y1": 7, "x2": 0, "y2": 8, "color": Color::Blue}),
+            json!({"x1": 1, "y1": 7, "x2": 1, "y2": 6, "color": Color::Blue}),
+            json!({"x1": 1, "y1": 6, "x2": 1, "y2": 7, "color": Color::Blue}),
+        ];
+        for correct in correct_roots {
+            assert!(roots.contains(&correct));
         }
     }
 }
