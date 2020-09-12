@@ -507,34 +507,51 @@ impl Board {
     }
 
     pub fn to_json(&self) -> String {
-        let mut stones = String::new();
-        let mut roots  = String::new();
+        #[derive(Serialize)]
+        struct Stone {
+            x: i8,
+            y: i8,
+            color: i8,
+        }
+
+        #[derive(Serialize)]
+        struct Root {
+            x1: i8,
+            y1: i8,
+            x2: i8,
+            y2: i8,
+            color: i8,
+        }
+
+        #[derive(Serialize)]
+        struct BoardJson {
+            stones: Vec<Stone>,
+            roots: Vec<Root>,
+        }
+
+        let mut stones = Vec::new();
+        let mut roots  = Vec::new();
         for x in 0..self.width as i8 {
             for y in 0..self.width as i8 {
                 let idx = (x as usize) * (self.width as usize) + (y as usize);
                 if let Some(color) = self.grids[idx].color {
-                    let color_idx = if color == Color::Red {0} else {1};
+                    let color = color as i8;
+                    stones.push(Stone { x, y, color });
 
-                    // add stone
-                    let stone = format!("{{\"x\":{},\"y\":{},\"color\":{}}},", x, y, color_idx);
-                    stones += &stone;
-
-                    // add roots
                     for dir in self.grids[idx].roots.iter() {
-                        let root = format!("{{ \"x1\":{},\"y1\":{},\"x2\":{},\"y2\":{},\"color\":{} }},",
-                                           x, y, x + dir.0, y + dir.1, color_idx);
-                        roots += &root;
+                        roots.push(Root {
+                            x1: x,
+                            y1: y,
+                            x2: x + dir.0,
+                            y2: y + dir.1,
+                            color,
+                        });
                     }
                 }
             }
         }
-        if !stones.is_empty() {
-            stones.pop(); // remove trailing comma
-        }
-        if !roots.is_empty() {
-            roots.pop(); // remove trailing comma
-        }
-        format!("{{\"stones\":[{}],\"roots\":[{}]}}", stones, roots).to_string()
+
+        serde_json::to_string(&BoardJson { stones, roots }).unwrap()
     }
     pub fn possible_moves_as_json(&self) -> String {
         #[derive(Serialize)]
