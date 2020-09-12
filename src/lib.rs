@@ -856,3 +856,59 @@ impl UCTMonteCarlo {
         self.root.borrow().board.clone()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::Value;
+
+    #[test]
+    fn possible_moves() {
+        let board = Board::new(9);
+        let possibles = board.possible_moves(Color::Red);
+        assert_eq!(possibles.len(), 4);
+        assert!(possibles.contains(&Move(Coord(0, 0), Coord(1, 1), Coord(1, 2))));
+        assert!(possibles.contains(&Move(Coord(0, 0), Coord(1, 1), Coord(2, 1))));
+        assert!(possibles.contains(&Move(Coord(8, 8), Coord(7, 7), Coord(7, 6))));
+        assert!(possibles.contains(&Move(Coord(8, 8), Coord(7, 7), Coord(6, 7))));
+    }
+
+    #[test]
+    fn possible_moves_as_json() {
+        let board = Board::new(9);
+
+        let red_moves = board.possible_moves(Color::Red);
+        let blue_moves = board.possible_moves(Color::Blue);
+
+        let moves_from_json: Value = serde_json::from_str(&board.possible_moves_as_json()).unwrap();
+
+        for (i, Move(Coord(x1, y1), Coord(x2, y2), Coord(x3, y3))) in red_moves.iter().enumerate() {
+            assert_eq!(moves_from_json[i*2]["x1"].as_i64().unwrap(), *x1 as i64);
+            assert_eq!(moves_from_json[i*2]["y1"].as_i64().unwrap(), *y1 as i64);
+            assert_eq!(moves_from_json[i*2]["x2"].as_i64().unwrap(), *x2 as i64);
+            assert_eq!(moves_from_json[i*2]["y2"].as_i64().unwrap(), *y2 as i64);
+            assert_eq!(moves_from_json[i*2]["color"].as_i64().unwrap(), 0);
+
+            assert_eq!(moves_from_json[i*2+1]["x1"].as_i64().unwrap(), *x2 as i64);
+            assert_eq!(moves_from_json[i*2+1]["y1"].as_i64().unwrap(), *y2 as i64);
+            assert_eq!(moves_from_json[i*2+1]["x2"].as_i64().unwrap(), *x3 as i64);
+            assert_eq!(moves_from_json[i*2+1]["y2"].as_i64().unwrap(), *y3 as i64);
+            assert_eq!(moves_from_json[i*2+1]["color"].as_i64().unwrap(), 0);
+        }
+
+        for (i, Move(Coord(x1, y1), Coord(x2, y2), Coord(x3, y3))) in blue_moves.iter().enumerate() {
+            let i = i + red_moves.len();
+            assert_eq!(moves_from_json[i*2]["x1"].as_i64().unwrap(), *x1 as i64);
+            assert_eq!(moves_from_json[i*2]["y1"].as_i64().unwrap(), *y1 as i64);
+            assert_eq!(moves_from_json[i*2]["x2"].as_i64().unwrap(), *x2 as i64);
+            assert_eq!(moves_from_json[i*2]["y2"].as_i64().unwrap(), *y2 as i64);
+            assert_eq!(moves_from_json[i*2]["color"].as_i64().unwrap(), 1);
+
+            assert_eq!(moves_from_json[i*2+1]["x1"].as_i64().unwrap(), *x2 as i64);
+            assert_eq!(moves_from_json[i*2+1]["y1"].as_i64().unwrap(), *y2 as i64);
+            assert_eq!(moves_from_json[i*2+1]["x2"].as_i64().unwrap(), *x3 as i64);
+            assert_eq!(moves_from_json[i*2+1]["y2"].as_i64().unwrap(), *y3 as i64);
+            assert_eq!(moves_from_json[i*2+1]["color"].as_i64().unwrap(), 1);
+        }
+    }
+}
