@@ -6,6 +6,7 @@ const board_width   = 480;
 var board_size   =    9;
 var grid_width   = board_width / (board_size - 1);
 var stone_radius =  grid_width * 0.3;
+var scale = 1.0;
 const stone_stroke =   2;
 const root_stroke  =   5;
 
@@ -44,8 +45,8 @@ function touchevent_to_xy(e) {
 
 function offset_to_xy(offsetX, offsetY) {
     return {
-      x: Math.floor((offsetX + grid_width / 2 - board_margin)                 / grid_width),
-        y: Math.floor((offsetY + grid_width / 2 - board_margin - canvas_header) / grid_width),
+        x: Math.floor((scale * offsetX + grid_width / 2 - board_margin)                 / grid_width),
+        y: Math.floor((scale * offsetY + grid_width / 2 - board_margin - canvas_header) / grid_width),
     };
 }
 
@@ -78,6 +79,7 @@ async function run(module) {
     let separo = module.Board.new(board_size);
     let canvas = document.getElementById("separo-board");
 
+    scale = canvas_width / canvas.offsetWidth;
     canvas.width  = canvas_width;
     canvas.height = canvas_height;
 
