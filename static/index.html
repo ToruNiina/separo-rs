@@ -2,76 +2,103 @@
 <html>
   <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
     <title>Separo-rs</title>
     <script src="https://cdn.jsdelivr.net/npm/mobile-detect@1.4.4/mobile-detect.min.js"></script>
+    <style>
+      p { text-indent: 1em; }
+    </style>
   </head>
   <body>
-    <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
-    <div id="description">
-      <p align="justify" style="width: 75%; margin:0 auto; text-indent: 1em;">
-        Separoは<a href="https://github.com/gfngfn">@gfngfn</a>氏が考案した2人対戦ボードゲームです。
-        ルールはページ下部の簡易的な記述か、<a href="http://buddhagaja.soregashi.com/boardgame.html#jump_boardgame_separo">@gfngfn氏のサイト</a>を参照してください。
-      </p>
-      <p align="justify" style="width: 75%; margin:0 auto; text-indent: 1em;">
-        ゲームを始める際は、下のプルダウンメニューからアルゴリズム（か、Human）を選んでStartを押してください。
-        各アルゴリズムについては、<a href="https://github.com/ToruNiina/separo-rs">GitHubレポジトリ</a>を参照してください。
-      </p>
-    </div>
+    <div class="container">
+      <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
+      <div id="description">
+        <p align="justify">
+          Separoは<a href="https://github.com/gfngfn">@gfngfn</a>氏が考案した2人対戦ボードゲームです。
+          ルールはページ下部の簡易的な記述か、<a href="http://buddhagaja.soregashi.com/boardgame.html#jump_boardgame_separo">@gfngfn氏のサイト</a>を参照してください。
+        </p>
+        <p align="justify">
+          ゲームを始める際は、下のプルダウンメニューからアルゴリズム（か、Human）を選んでStartを押してください。
+          各アルゴリズムについては、<a href="https://github.com/ToruNiina/separo-rs">GitHubレポジトリ</a>を参照してください。
+        </p>
+      </div>
 
-    <div id="player-select" style="text-align:center;">
-        <select id="red player">
-            <option value="NotSelected">-- RED --</option>
-            <option value="Human">Human</option>
-            <option value="Random">Random</option>
-            <option value="Naive MC">Naive MC</option>
-            <option value="UCT MC">UCT MC</option>
-        </select>
-        <select id="blue player">
-            <option value="NotSelected">-- BLUE --</option>
-            <option value="Human">Human</option>
-            <option value="Random">Random</option>
-            <option value="Naive MC">Naive MC</option>
-            <option value="UCT MC">UCT MC</option>
-        </select>
-    </div>
+      <div class="mw-100 mx-auto" style="width: 540px;">
+        <div class="form-row">
+          <div class="col-5 form-group">
+            <select id="red player" class="form-control">
+                <option value="NotSelected">-- RED --</option>
+                <option value="Human">Human</option>
+                <option value="Random">Random</option>
+                <option value="Naive MC">Naive MC</option>
+                <option value="UCT MC">UCT MC</option>
+            </select>
+          </div>
+          <span class="col-2" style="text-align: center;">VS</span>
+          <div class="col-5 form-group">
+            <select id="blue player" class="form-control">
+                <option value="NotSelected">-- BLUE --</option>
+                <option value="Human">Human</option>
+                <option value="Random">Random</option>
+                <option value="Naive MC">Naive MC</option>
+                <option value="UCT MC">UCT MC</option>
+            </select>
+          </div>
+        </div>
 
-    <div style="text-align:center;">
-        <input type="button" value="start" id="start-button">
-    </div>
+        <div class="form-group row">
+          <label for="time-limit" class="col-4 col-form-label">Time Limit</label>
+          <div class="input-group col-8">
+            <input type="number" class="form-control" id="time-limit" value="1" min="1" max="60">
+            <div class="input-group-append">
+              <span class="input-group-text">sec</span>
+            </div>
+          </div>
+        </div>
 
-    <div style="text-align:center;">
-        <label for="guide"> guide on </label>
-        <input type="checkbox" name="guide" id="guide" checked>
+        <div class="form-group row">
+          <label for="board-size" class="col-4 col-form-label">Board Size</label>
+          <div class="col-8">
+            <input type="number" class="form-control" id="board-size" value="9" min="5" max="19">
+          </div>
+        </div>
 
-        <label for="time-limit"> time limit (sec) </label>
-        <input type="number" name="time-limit" id="time-limit" value="1" min="1" max="60">
+        <div class="row">
+          <div class="form-check col-6" style="text-align: center;">
+            <input type="checkbox" class="form-check-input" id="guide" checked>
+            <label for="guide" class="form-check-label">Guide</label>
+          </div>
+          <div class="col-6" style="text-align: center;">
+            <button type="button" class="btn btn-primary" id="start-button">Start</button>
+          </div>
+        </div>
 
-        <label for="board-size"> board size </label>
-        <input type="number" name="board-size" id="board-size" value="9" min="5" max="19">
-    </div>
+      </div>
 
-    <div id="game" style="text-align: center;">
-      <canvas id="separo-board"></canvas>
-    </div>
-    <div id="rule">
-      <p align="justify" style="width: 75%; margin:0 auto; text-indent: 1em;">
-        このゲームは、赤が先手、青が後手となり、順に「石」を置きながら「根」を張って、最終的に盤面をより多くの領域に分割した方が勝ちとなるゲームです。
-        ただし、分割された領域のうち、面積が格子の単位正方形1つ分以下となる領域はカウントされません。
-      </p>
-      <p align="justify" style="width: 75%; margin:0 auto; text-indent: 1em;">
-        手番は二つのフェーズから成ります。
-        第一フェーズでは、すでにある自分の石を選び、そこから斜めの方向にあるまだ石のない交点を選んで根を伸ばします。
-        第二フェーズでは、第一フェーズで置いた点から、第一フェーズで伸ばした線と135度の角度をなす縦横いずれかの線を選び、根を伸ばします。
-        第二フェーズで選んだ点にすでに自分の石がある場合、接続できます。
-        全てのフェーズで、すでにある自分の根と45度以下の角度で交わるような根は伸ばすことができません。
-        手がない場合、パスができます。両者ともに着手不可能になれば終了です。
-      </p>
-      <p align="justify" style="width: 75%; margin:0 auto; text-indent: 1em;">
-        遊ぶときは、第一フェーズを始める石をクリックし、ドラッグして続きの石を選択してください。
-        ボタンを離した瞬間にいたグリッドの石が第二フェーズ終わりの石となります。
-        スマホやタブレットの場合は、第一フェーズを始める石をタップしてから、第二フェーズの支点と終点の石をタップしてください。
-        ルール違反となる手は適用されません。間違えて選択した場合は遠く離れたところでボタンを離すなどでルール違反の手を作り、キャンセルしてください。
-      </p>
+      <div id="game" style="text-align: center;">
+        <canvas id="separo-board" class="mw-100" style="width: 540px;"></canvas>
+      </div>
+      <div id="rule">
+        <p align="justify">
+          このゲームは、赤が先手、青が後手となり、順に「石」を置きながら「根」を張って、最終的に盤面をより多くの領域に分割した方が勝ちとなるゲームです。
+          ただし、分割された領域のうち、面積が格子の単位正方形1つ分以下となる領域はカウントされません。
+        </p>
+        <p align="justify">
+          手番は二つのフェーズから成ります。
+          第一フェーズでは、すでにある自分の石を選び、そこから斜めの方向にあるまだ石のない交点を選んで根を伸ばします。
+          第二フェーズでは、第一フェーズで置いた点から、第一フェーズで伸ばした線と135度の角度をなす縦横いずれかの線を選び、根を伸ばします。
+          第二フェーズで選んだ点にすでに自分の石がある場合、接続できます。
+          全てのフェーズで、すでにある自分の根と45度以下の角度で交わるような根は伸ばすことができません。
+          手がない場合、パスができます。両者ともに着手不可能になれば終了です。
+        </p>
+        <p align="justify">
+          遊ぶときは、第一フェーズを始める石をクリックし、ドラッグして続きの石を選択してください。
+          ボタンを離した瞬間にいたグリッドの石が第二フェーズ終わりの石となります。
+          スマホやタブレットの場合は、第一フェーズを始める石をタップしてから、第二フェーズの支点と終点の石をタップしてください。
+          ルール違反となる手は適用されません。間違えて選択した場合は遠く離れたところでボタンを離すなどでルール違反の手を作り、キャンセルしてください。
+        </p>
+      </div>
     </div>
     <script type="text/javascript" src="./js/index.js"></script>
     <script type="module">
