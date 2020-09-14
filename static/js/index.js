@@ -69,6 +69,18 @@ document.getElementById("board-size").addEventListener('input', function(e) {
     update_board_size();
 });
 
+let gif_base64 = ""
+document.getElementById("download-button").addEventListener('click', function(e) {
+    var element = document.createElement("a");
+    element.setAttribute("href", gif_base64);
+    element.setAttribute("download", "separo.gif");
+    element.style.display = "none";
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+});
+
+
 async function run(module) {
     if(is_running) {return;}
     is_running = true;
@@ -315,11 +327,14 @@ async function run(module) {
         playerB = {play: human_player(1)};
     }
 
+    let gif_encoder = module.GameGifEncoder.new();
+    gif_encoder.add_frame(canvas.toDataURL('image/png'));
     while(!separo.is_gameover()) {
         turn_color = "Red";
         separo = await playerR.play(separo);
 
         drawBoard(context, separo, player_R, player_B, "Blue's turn");
+        gif_encoder.add_frame(canvas.toDataURL('image/png'));
         await sleep(100);
 
         // -------------------------------------------------------------------
@@ -327,8 +342,11 @@ async function run(module) {
         separo = await playerB.play(separo);
 
         drawBoard(context, separo, player_R, player_B, "Red's turn");
+        gif_encoder.add_frame(canvas.toDataURL('image/png'));
         await sleep(100);
     }
+    gif_encoder.add_frame(canvas.toDataURL('image/png'));
+    gif_base64 = "data:image/gif;base64," + gif_encoder.dump();
 
     var last_score_red  = separo.score(0);
     var last_score_blue = separo.score(1);

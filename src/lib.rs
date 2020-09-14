@@ -888,6 +888,47 @@ impl UCTMonteCarlo {
     }
 }
 
+struct ToVecRefWriter {
+    inner: Rc<RefCell<Vec<u8>>>,
+}
+impl std::io::Write for ToVecRefWriter {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.inner.borrow_mut().write(buf)
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.inner.borrow_mut().flush()
+    }
+}
+#[wasm_bindgen]
+pub struct GameGifEncoder {
+    buffer:  Rc<RefCell<Vec<u8>>>,
+    encoder: image::gif::GifEncoder<ToVecRefWriter>,
+}
+
+#[wasm_bindgen]
+impl GameGifEncoder {
+    pub fn new() -> Self {
+        let v = Rc::new(RefCell::new(Vec::new()));
+        GameGifEncoder{
+            buffer:  Rc::clone(&v),
+            encoder: image::gif::GifEncoder::new(ToVecRefWriter{inner: Rc::clone(&v)})
+        }
+    }
+    pub fn add_frame(&mut self, mime: String) {
+        let content: Vec<u8> = base64::decode(mime.trim_start_matches("data:image/png;base64,")).unwrap();
+
+        let img = image::load_from_memory_with_format(&content, image::ImageFormat::Png)
+            .unwrap().to_rgba();
+
+        self.encoder.encode_frame(image::Frame::new(img)).unwrap();
+    }
+
+    pub fn dump(&self) -> String {
+        base64::encode(&*self.buffer.borrow())
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
