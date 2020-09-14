@@ -28,7 +28,8 @@ serde_json = "1.0"
 serde_repr = "0.1"
 
 base64 = "0.12"
-image = "0.23"
+png = "0.16"
+gif = "0.10"
 
 # The `wasm-bindgen` crate provides the bare minimum functionality needed
 # to interact with JavaScript.

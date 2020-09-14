@@ -899,32 +899,49 @@ impl std::io::Write for ToVecRefWriter {
         self.inner.borrow_mut().flush()
     }
 }
+
 #[wasm_bindgen]
 pub struct GameGifEncoder {
-    buffer:  Rc<RefCell<Vec<u8>>>,
-    encoder: image::gif::GifEncoder<ToVecRefWriter>,
+    png_buffer: Vec<u8>,
+    gif_buffer: Rc<RefCell<Vec<u8>>>,
+    gif_encoder: Option<gif::Encoder<ToVecRefWriter>>,
 }
+use gif::SetParameter;
 
 #[wasm_bindgen]
 impl GameGifEncoder {
     pub fn new() -> Self {
-        let v = Rc::new(RefCell::new(Vec::new()));
         GameGifEncoder{
-            buffer:  Rc::clone(&v),
-            encoder: image::gif::GifEncoder::new(ToVecRefWriter{inner: Rc::clone(&v)})
+            png_buffer: Vec::new(),
+            gif_buffer: Rc::new(RefCell::new(Vec::new())),
+            gif_encoder: None,
         }
     }
-    pub fn add_frame(&mut self, mime: String) {
-        let content: Vec<u8> = base64::decode(mime.trim_start_matches("data:image/png;base64,")).unwrap();
+    pub fn add_frame(&mut self, img: String) {
+        let content: Vec<u8> = base64::decode(
+            img.trim_start_matches("data:image/png;base64,")).unwrap();
+        let decoder = png::Decoder::new(&content[..]);
+        let (info, mut reader) = decoder.read_info().unwrap();
+        self.png_buffer.resize(info.buffer_size(), 0);
+        reader.next_frame(&mut self.png_buffer).unwrap();
 
-        let img = image::load_from_memory_with_format(&content, image::ImageFormat::Png)
-            .unwrap().to_rgba();
+        if self.gif_encoder.is_none() {
+            self.gif_encoder = Some(gif::Encoder::new(
+                ToVecRefWriter{inner: Rc::clone(&self.gif_buffer)},
+                info.width as u16,
+                info.height as u16,
+                &[]).unwrap());
+            self.gif_encoder.as_mut().unwrap().set(gif::Repeat::Infinite).unwrap();
+        }
+        let mut frame = gif::Frame::from_rgba_speed(
+            info.width as u16, info.height as u16, &mut self.png_buffer, 20);
+        frame.delay = 100;
 
-        self.encoder.encode_frame(image::Frame::new(img)).unwrap();
+        self.gif_encoder.as_mut().unwrap().write_frame(&frame).unwrap();
     }
 
     pub fn dump(&self) -> String {
-        base64::encode(&*self.buffer.borrow())
+        base64::encode(&*self.gif_buffer.borrow())
     }
 }
 
