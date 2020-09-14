@@ -24,36 +24,56 @@
         </p>
       </div>
 
-      <div id="player-select" style="text-align:center;">
-          <select id="red player">
-              <option value="NotSelected">-- RED --</option>
-              <option value="Human">Human</option>
-              <option value="Random">Random</option>
-              <option value="Naive MC">Naive MC</option>
-              <option value="UCT MC">UCT MC</option>
-          </select>
-          <select id="blue player">
-              <option value="NotSelected">-- BLUE --</option>
-              <option value="Human">Human</option>
-              <option value="Random">Random</option>
-              <option value="Naive MC">Naive MC</option>
-              <option value="UCT MC">UCT MC</option>
-          </select>
-      </div>
+      <div class="mw-100 mx-auto" style="width: 540px;">
+        <div class="form-row">
+          <div class="col-5 form-group">
+            <select id="red player" class="form-control">
+                <option value="NotSelected">-- RED --</option>
+                <option value="Human">Human</option>
+                <option value="Random">Random</option>
+                <option value="Naive MC">Naive MC</option>
+                <option value="UCT MC">UCT MC</option>
+            </select>
+          </div>
+          <span class="col-2" style="text-align: center;">VS</span>
+          <div class="col-5 form-group">
+            <select id="blue player" class="form-control">
+                <option value="NotSelected">-- BLUE --</option>
+                <option value="Human">Human</option>
+                <option value="Random">Random</option>
+                <option value="Naive MC">Naive MC</option>
+                <option value="UCT MC">UCT MC</option>
+            </select>
+          </div>
+        </div>
 
-      <div style="text-align:center;">
-          <input type="button" value="start" id="start-button">
-      </div>
+        <div class="form-group row">
+          <label for="time-limit" class="col-4 col-form-label">Time Limit</label>
+          <div class="input-group col-8">
+            <input type="number" class="form-control" id="time-limit" value="1" min="1" max="60">
+            <div class="input-group-append">
+              <span class="input-group-text">sec</span>
+            </div>
+          </div>
+        </div>
 
-      <div style="text-align:center;">
-          <label for="guide"> guide on </label>
-          <input type="checkbox" name="guide" id="guide" checked>
+        <div class="form-group row">
+          <label for="board-size" class="col-4 col-form-label">Board Size</label>
+          <div class="col-8">
+            <input type="number" class="form-control" id="board-size" value="9" min="5" max="19">
+          </div>
+        </div>
 
-          <label for="time-limit"> time limit (sec) </label>
-          <input type="number" name="time-limit" id="time-limit" value="1" min="1" max="60">
+        <div class="row">
+          <div class="form-check col-6" style="text-align: center;">
+            <input type="checkbox" class="form-check-input" id="guide" checked>
+            <label for="guide" class="form-check-label">Guide</label>
+          </div>
+          <div class="col-6" style="text-align: center;">
+            <button type="button" class="btn btn-primary" id="start-button">Start</button>
+          </div>
+        </div>
 
-          <label for="board-size"> board size </label>
-          <input type="number" name="board-size" id="board-size" value="9" min="5" max="19">
       </div>
 
       <div id="game" style="text-align: center;">
