@@ -1,5 +1,7 @@
 # Separo-rs
 
+blog post about SEPARO in [English](https://toruniina.github.io/posts/writing-board-game-ai/)
+
 Separoは[@gfngfn](https://github.com/gfngfn)氏によって考案された2人対戦用ボードゲームです。
 ルールの詳細は、@gfngfn氏の個人ウェブページ[佛陀ヶ谷](http://buddhagaja.soregashi.com/boardgame.html#jump_boardgame_separo)で配布されています。
 
