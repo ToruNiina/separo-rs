@@ -901,7 +901,7 @@ impl std::io::Write for ToVecRefWriter {
 }
 
 #[wasm_bindgen]
-pub struct GameGifEncoder {
+pub struct GameGifRecorder {
     png_buffer: Vec<u8>,
     gif_buffer: Rc<RefCell<Vec<u8>>>,
     gif_encoder: Option<gif::Encoder<ToVecRefWriter>>,
@@ -909,9 +909,9 @@ pub struct GameGifEncoder {
 use gif::SetParameter;
 
 #[wasm_bindgen]
-impl GameGifEncoder {
+impl GameGifRecorder {
     pub fn new() -> Self {
-        GameGifEncoder{
+        GameGifRecorder{
             png_buffer: Vec::new(),
             gif_buffer: Rc::new(RefCell::new(Vec::new())),
             gif_encoder: None,
