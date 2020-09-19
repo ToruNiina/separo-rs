@@ -56,6 +56,23 @@ export class Coord {
 }
 /**
 */
+export class GameGifRecorder {
+  free(): void;
+/**
+* @returns {GameGifRecorder}
+*/
+  static new(): GameGifRecorder;
+/**
+* @param {string} img
+*/
+  add_frame(img: string): void;
+/**
+* @returns {string}
+*/
+  dump(): string;
+}
+/**
+*/
 export class Move {
   free(): void;
 }
@@ -155,9 +172,15 @@ export interface InitOutput {
   readonly __wbg_set_uctmontecarlo_color: (a: number, b: number) => void;
   readonly uctmontecarlo_new: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => number;
   readonly uctmontecarlo_play: (a: number, b: number) => number;
+  readonly __wbg_gamegifrecorder_free: (a: number) => void;
+  readonly gamegifrecorder_new: () => number;
+  readonly gamegifrecorder_add_frame: (a: number, b: number, c: number) => void;
+  readonly gamegifrecorder_dump: (a: number, b: number) => void;
   readonly __wbg_move_free: (a: number) => void;
   readonly __wbg_randomplayer_free: (a: number) => void;
   readonly __wbindgen_free: (a: number, b: number) => void;
+  readonly __wbindgen_malloc: (a: number) => number;
+  readonly __wbindgen_realloc: (a: number, b: number, c: number) => number;
 }
 
 /**

@@ -61,6 +61,61 @@ function _assertClass(instance, klass) {
     return instance.ptr;
 }
 
+let WASM_VECTOR_LEN = 0;
+
+let cachedTextEncoder = new TextEncoder('utf-8');
+
+const encodeString = (typeof cachedTextEncoder.encodeInto === 'function'
+    ? function (arg, view) {
+    return cachedTextEncoder.encodeInto(arg, view);
+}
+    : function (arg, view) {
+    const buf = cachedTextEncoder.encode(arg);
+    view.set(buf);
+    return {
+        read: arg.length,
+        written: buf.length
+    };
+});
+
+function passStringToWasm0(arg, malloc, realloc) {
+
+    if (realloc === undefined) {
+        const buf = cachedTextEncoder.encode(arg);
+        const ptr = malloc(buf.length);
+        getUint8Memory0().subarray(ptr, ptr + buf.length).set(buf);
+        WASM_VECTOR_LEN = buf.length;
+        return ptr;
+    }
+
+    let len = arg.length;
+    let ptr = malloc(len);
+
+    const mem = getUint8Memory0();
+
+    let offset = 0;
+
+    for (; offset < len; offset++) {
+        const code = arg.charCodeAt(offset);
+        if (code > 0x7F) break;
+        mem[ptr + offset] = code;
+    }
+
+    if (offset !== len) {
+        if (offset !== 0) {
+            arg = arg.slice(offset);
+        }
+        ptr = realloc(ptr, len, len = offset + arg.length * 3);
+        const view = getUint8Memory0().subarray(ptr + offset, ptr + len);
+        const ret = encodeString(arg, view);
+
+        offset += ret.written;
+    }
+
+    WASM_VECTOR_LEN = offset;
+    return ptr;
+}
+
 function notDefined(what) { return () => { throw new Error(`${what} is not defined`); }; }
 /**
 */
@@ -169,6 +224,55 @@ export class Coord {
         this.ptr = 0;
 
         wasm.__wbg_coord_free(ptr);
+    }
+}
+/**
+*/
+export class GameGifRecorder {
+
+    static __wrap(ptr) {
+        const obj = Object.create(GameGifRecorder.prototype);
+        obj.ptr = ptr;
+
+        return obj;
+    }
+
+    free() {
+        const ptr = this.ptr;
+        this.ptr = 0;
+
+        wasm.__wbg_gamegifrecorder_free(ptr);
+    }
+    /**
+    * @returns {GameGifRecorder}
+    */
+    static new() {
+        var ret = wasm.gamegifrecorder_new();
+        return GameGifRecorder.__wrap(ret);
+    }
+    /**
+    * @param {string} img
+    */
+    add_frame(img) {
+        var ptr0 = passStringToWasm0(img, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len0 = WASM_VECTOR_LEN;
+        wasm.gamegifrecorder_add_frame(this.ptr, ptr0, len0);
+    }
+    /**
+    * @returns {string}
+    */
+    dump() {
+        try {
+            const retptr = wasm.__wbindgen_export_0.value - 16;
+            wasm.__wbindgen_export_0.value = retptr;
+            wasm.gamegifrecorder_dump(retptr, this.ptr);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            return getStringFromWasm0(r0, r1);
+        } finally {
+            wasm.__wbindgen_export_0.value += 16;
+            wasm.__wbindgen_free(r0, r1);
+        }
     }
 }
 /**
