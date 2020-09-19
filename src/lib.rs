@@ -940,7 +940,8 @@ impl GameGifEncoder {
         self.gif_encoder.as_mut().unwrap().write_frame(&frame).unwrap();
     }
 
-    pub fn dump(&self) -> String {
+    pub fn dump(&mut self) -> String {
+        self.gif_encoder = None; // drop gif_encoder
         base64::encode(&*self.gif_buffer.borrow())
     }
 }
