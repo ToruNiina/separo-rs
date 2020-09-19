@@ -15,6 +15,8 @@ use std::cell::{RefCell, RefMut};
 mod instant;
 use crate::instant::Instant;
 
+mod recorder;
+
 // When the `wee_alloc` feature is enabled, this uses `wee_alloc` as the global
 // allocator.
 //
