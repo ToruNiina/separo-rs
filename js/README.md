@@ -23,6 +23,14 @@ Separo-rsは、Separoをプレイするソフトウェアと、Webインター�
 
 このレポジトリは、[rustwasm/rust-webpack-template](https://github.com/rustwasm/rust-webpack-template)をもとに作成されています。
 
+## Quick Start
+
+1. https://toruniina.github.io/separo-rs/ をクリックします。
+2. Human VS Random となるようにプルダウンメニューを設定します。あとはデフォルトのまま Start ボタンをクリックします。
+3. 盤面の赤丸をクリック状態を継続して掴み、動かせるところ(点線の丸のガイドが表示されます)までひっぱりクリック状態を解除します。
+4. 3.を繰り返します。
+5. 4.が行えなくなった時点で勝敗が決定しています。Start ボタンの2行下に勝敗情報が表示されています。
+
 ## Build
 
 ### Prerequisites
