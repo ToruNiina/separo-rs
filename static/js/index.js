@@ -345,8 +345,6 @@ async function run(module) {
         gif_recorder.add_frame(canvas.toDataURL('image/png'));
         await sleep(100);
     }
-    gif_recorder.add_frame(canvas.toDataURL('image/png'));
-    gif_base64 = "data:image/gif;base64," + gif_recorder.dump();
 
     var last_score_red  = separo.score(0);
     var last_score_blue = separo.score(1);
@@ -357,6 +355,10 @@ async function run(module) {
         result = "Blue wins!";
     }
     drawBoard(context, separo, player_R, player_B, result);
+
+    gif_recorder.add_frame(canvas.toDataURL('image/png'));
+    gif_base64 = "data:image/gif;base64," + gif_recorder.dump();
+
     is_running = false;
     return;
 }
