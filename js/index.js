@@ -330,23 +330,24 @@ async function run(module) {
     let gif_recorder = module.GameGifRecorder.new();
     gif_recorder.add_frame(canvas.toDataURL('image/png'));
     while(!separo.is_gameover()) {
-        turn_color = "Red";
-        separo = await playerR.play(separo);
+        if(separo.can_move(0)) {
+            turn_color = "Red";
+            separo = await playerR.play(separo);
 
-        drawBoard(context, separo, player_R, player_B, "Blue's turn");
-        gif_recorder.add_frame(canvas.toDataURL('image/png'));
+            drawBoard(context, separo, player_R, player_B, "Blue's turn");
+            gif_recorder.add_frame(canvas.toDataURL('image/png'));
+        }
         await sleep(100);
-
         // -------------------------------------------------------------------
-        turn_color = "Blue";
-        separo = await playerB.play(separo);
+        if(separo.can_move(1)) {
+            turn_color = "Blue";
+            separo = await playerB.play(separo);
 
-        drawBoard(context, separo, player_R, player_B, "Red's turn");
-        gif_recorder.add_frame(canvas.toDataURL('image/png'));
+            drawBoard(context, separo, player_R, player_B, "Red's turn");
+            gif_recorder.add_frame(canvas.toDataURL('image/png'));
+        }
         await sleep(100);
     }
-    gif_recorder.add_frame(canvas.toDataURL('image/png'));
-    gif_base64 = "data:image/gif;base64," + gif_recorder.dump();
 
     var last_score_red  = separo.score(0);
     var last_score_blue = separo.score(1);
@@ -357,6 +358,10 @@ async function run(module) {
         result = "Blue wins!";
     }
     drawBoard(context, separo, player_R, player_B, result);
+
+    gif_recorder.add_frame(canvas.toDataURL('image/png'));
+    gif_base64 = "data:image/gif;base64," + gif_recorder.dump();
+
     is_running = false;
     return;
 }
