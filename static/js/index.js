@@ -3,10 +3,10 @@ const canvas_width  = 540;
 const canvas_height = 640;
 const board_margin  =  30;
 const board_width   = 480;
-var board_size   =    9;
-var grid_width   = board_width / (board_size - 1);
-var stone_radius =  grid_width * 0.3;
-var scale = 1.0;
+let board_size   =    9;
+let grid_width   = board_width / (board_size - 1);
+let stone_radius =  grid_width * 0.3;
+let scale = 1.0;
 const stone_stroke =   2;
 const root_stroke  =   5;
 
@@ -19,7 +19,7 @@ const fill_colors   = ['rgba(255,128,128,0.95)', 'rgba(128,128,255,0.95)'];
 const stroke_colors = ['rgb(255,0,0)', 'rgb(0,0,255)'];
 
 const guide_checkbox = document.getElementById("guide");
-var draw_guide = guide_checkbox.checked;
+let draw_guide = guide_checkbox.checked;
 let is_running = false;
 
 function sleep(ms) {
@@ -71,7 +71,7 @@ document.getElementById("board-size").addEventListener('input', function(e) {
 
 let gif_base64 = ""
 document.getElementById("download-button").addEventListener('click', function(e) {
-    var element = document.createElement("a");
+    let element = document.createElement("a");
     element.setAttribute("href", gif_base64);
     element.setAttribute("download", "separo.gif");
     element.style.display = "none";
@@ -95,7 +95,7 @@ async function run(module) {
     canvas.width  = canvas_width;
     canvas.height = canvas_height;
 
-    var context = canvas.getContext('2d');
+    let context = canvas.getContext('2d');
 
     const time_limit = Math.floor(document.getElementById("time-limit").valueAsNumber);
 
@@ -126,10 +126,10 @@ async function run(module) {
     }
 
     // to check human's move (There should be more sophisticated way...)
-    var is_humans_turn = false;
-    var humans_move    = [null, null, null];
-    var humans_possible_moves = [];
-    var turn_color     = "Red";
+    let is_humans_turn = false;
+    let humans_move    = [null, null, null];
+    let humans_possible_moves = [];
+    let turn_color     = "Red";
     let is_canceled = false;
 
     function list_up_possible_moves(board, color) {
@@ -158,7 +158,7 @@ async function run(module) {
                         is_canceled = true;
                         return;
                     }
-                    var pix = xy_to_pixel(humans_move[0]);
+                    let pix = xy_to_pixel(humans_move[0]);
                     drawTemporaryStone(context, pix);
                 } else if (humans_move[1] == null) {
                     humans_move[1] = touchevent_to_xy(e);
@@ -167,7 +167,7 @@ async function run(module) {
                         is_canceled = true;
                         return;
                     }
-                    var pix = xy_to_pixel(humans_move[1]);
+                    let pix = xy_to_pixel(humans_move[1]);
                     drawTemporaryStone(context, pix);
                 } else if (humans_move[2] == null) {
                     humans_move[2] = touchevent_to_xy(e);
@@ -176,7 +176,7 @@ async function run(module) {
                         is_canceled = true;
                         return;
                     }
-                    var pix = xy_to_pixel(humans_move[2]);
+                    let pix = xy_to_pixel(humans_move[2]);
                     drawTemporaryStone(context, pix);
                 }
             }
@@ -198,7 +198,7 @@ async function run(module) {
                 humans_possible_moves = filtered;
 
                 // draw temporary
-                var pix = xy_to_pixel(humans_move[1]);
+                let pix = xy_to_pixel(humans_move[1]);
                 drawTemporaryStone(context, pix);
             } else {
                 // just show the last stone while chosing it.
@@ -229,7 +229,7 @@ async function run(module) {
 
             humans_move[0] = current_pos;
             humans_possible_moves = filtered;
-            var pix = xy_to_pixel(humans_move[0]);
+            let pix = xy_to_pixel(humans_move[0]);
             drawTemporaryStone(context, pix);
         });
 
@@ -252,7 +252,7 @@ async function run(module) {
 
             humans_move[2] = current_pos;
             humans_possible_moves = filtered;
-            var pix = xy_to_pixel(humans_move[2]);
+            let pix = xy_to_pixel(humans_move[2]);
             drawTemporaryStone(context, pix);
         })
 
@@ -349,9 +349,9 @@ async function run(module) {
         await sleep(100);
     }
 
-    var last_score_red  = separo.score(0);
-    var last_score_blue = separo.score(1);
-    var result = "draw!";
+    let last_score_red  = separo.score(0);
+    let last_score_blue = separo.score(1);
+    let result = "draw!";
     if (last_score_blue < last_score_red) {
         result = "Red wins!";
     } else if (last_score_red < last_score_blue) {
@@ -382,7 +382,7 @@ function drawBoard(context, board, red_name, blue_name, msg) {
 
     // show current score
     context.font      = "20px sans-serif"
-    var metrics = context.measureText(" | ");
+    let metrics = context.measureText(" | ");
     context.fillStyle = stroke_colors[0];
     context.textAlign = "right";
     context.fillText(`${red_name}: ${red_score}`,
