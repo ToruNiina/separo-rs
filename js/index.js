@@ -3,23 +3,25 @@ const canvas_width  = 540;
 const canvas_height = 640;
 const board_margin  =  30;
 const board_width   = 480;
-var board_size   =    9;
-var grid_width   = board_width / (board_size - 1);
-var stone_radius =  grid_width * 0.3;
-var scale = 1.0;
-const stone_stroke =   2;
-const root_stroke  =   5;
+let board_size      =   9;
+let grid_width      = board_width / (board_size - 1);
+let stone_radius    =  grid_width * 0.3;
+let scale           = 1.0;
+const stone_stroke  =   2;
+const root_stroke   =   5;
+const RED           =   0;
+const BLUE          =   1;
 
-const board_color = "rgb(255,255,255)";
-const grid_color  = "rgb(0,0,0)";
+const UCT_exploration_weight_coeff = 2.0;
+const UCT_tree_expansion_threshold = 3;
 
-const red_color  = 0;
-const blue_color = 1;
+const board_color   = "rgb(255,255,255)";
+const grid_color    = "rgb(0,0,0)";
 const fill_colors   = ['rgba(255,128,128,0.95)', 'rgba(128,128,255,0.95)'];
 const stroke_colors = ['rgb(255,0,0)', 'rgb(0,0,255)'];
 
 const guide_checkbox = document.getElementById("guide");
-var draw_guide = guide_checkbox.checked;
+let draw_guide = guide_checkbox.checked;
 let is_running = false;
 
 function sleep(ms) {
@@ -71,7 +73,7 @@ document.getElementById("board-size").addEventListener('input', function(e) {
 
 let gif_base64 = ""
 document.getElementById("download-button").addEventListener('click', function(e) {
-    var element = document.createElement("a");
+    let element = document.createElement("a");
     element.setAttribute("href", gif_base64);
     element.setAttribute("download", "separo.gif");
     element.style.display = "none";
@@ -95,7 +97,7 @@ async function run(module) {
     canvas.width  = canvas_width;
     canvas.height = canvas_height;
 
-    var context = canvas.getContext('2d');
+    let context = canvas.getContext('2d');
 
     const time_limit = Math.floor(document.getElementById("time-limit").valueAsNumber);
 
@@ -126,11 +128,11 @@ async function run(module) {
     }
 
     // to check human's move (There should be more sophisticated way...)
-    var is_humans_turn = false;
-    var humans_move    = [null, null, null];
-    var humans_possible_moves = [];
-    var turn_color     = "Red";
-    let is_canceled = false;
+    let is_humans_turn        = false;
+    let humans_move           = [null, null, null];
+    let humans_possible_moves = [];
+    let turn_color            = "Red";
+    let is_canceled           = false;
 
     function list_up_possible_moves(board, color) {
         humans_possible_moves = [];
@@ -158,7 +160,7 @@ async function run(module) {
                         is_canceled = true;
                         return;
                     }
-                    var pix = xy_to_pixel(humans_move[0]);
+                    let pix = xy_to_pixel(humans_move[0]);
                     drawTemporaryStone(context, pix);
                 } else if (humans_move[1] == null) {
                     humans_move[1] = touchevent_to_xy(e);
@@ -167,7 +169,7 @@ async function run(module) {
                         is_canceled = true;
                         return;
                     }
-                    var pix = xy_to_pixel(humans_move[1]);
+                    let pix = xy_to_pixel(humans_move[1]);
                     drawTemporaryStone(context, pix);
                 } else if (humans_move[2] == null) {
                     humans_move[2] = touchevent_to_xy(e);
@@ -176,7 +178,7 @@ async function run(module) {
                         is_canceled = true;
                         return;
                     }
-                    var pix = xy_to_pixel(humans_move[2]);
+                    let pix = xy_to_pixel(humans_move[2]);
                     drawTemporaryStone(context, pix);
                 }
             }
@@ -198,7 +200,7 @@ async function run(module) {
                 humans_possible_moves = filtered;
 
                 // draw temporary
-                var pix = xy_to_pixel(humans_move[1]);
+                let pix = xy_to_pixel(humans_move[1]);
                 drawTemporaryStone(context, pix);
             } else {
                 // just show the last stone while chosing it.
@@ -229,7 +231,7 @@ async function run(module) {
 
             humans_move[0] = current_pos;
             humans_possible_moves = filtered;
-            var pix = xy_to_pixel(humans_move[0]);
+            let pix = xy_to_pixel(humans_move[0]);
             drawTemporaryStone(context, pix);
         });
 
@@ -252,7 +254,7 @@ async function run(module) {
 
             humans_move[2] = current_pos;
             humans_possible_moves = filtered;
-            var pix = xy_to_pixel(humans_move[2]);
+            let pix = xy_to_pixel(humans_move[2]);
             drawTemporaryStone(context, pix);
         })
 
@@ -267,9 +269,7 @@ async function run(module) {
 
     const human_player = function(color) {
         return async function(board) {
-//             console.log("human.play() function started");
             if(!board.can_move(color)) {
-//                 console.log("You cannot move. return.");
                 return board;
             }
             is_humans_turn = true;
@@ -301,7 +301,6 @@ async function run(module) {
                 humans_move = [null, null, null];
                 drawBoard(context, board, player_R, player_B, turn_color + "'s turn");
             }
-//             console.log("done.");
             humans_move    = [null, null, null];
             is_humans_turn = false;
             return board;
@@ -309,28 +308,30 @@ async function run(module) {
     };
 
     if(player_R == "Random") {
-        playerR = module.RandomPlayer.new(0, gen_seed(), gen_seed());
+        playerR = module.RandomPlayer.new(RED, gen_seed(), gen_seed());
     } else if (player_R == "Naive MC") {
-        playerR = module.NaiveMonteCarlo.new(0, gen_seed(), gen_seed(), time_limit);
+        playerR = module.NaiveMonteCarlo.new(RED, gen_seed(), gen_seed(), time_limit);
     } else if (player_R == "UCT MC") {
-        playerR = module.UCTMonteCarlo.new(0, gen_seed(), gen_seed(), time_limit, 1.4, 3, board_size);
+        playerR = module.UCTMonteCarlo.new(RED, gen_seed(), gen_seed(), time_limit,
+            UCT_exploration_weight_coeff, UCT_tree_expansion_threshold, board_size);
     } else {
-        playerR = {play: human_player(0)};
+        playerR = {play: human_player(RED)};
     }
     if(player_B == "Random") {
-        playerB = module.RandomPlayer.new(1, gen_seed(), gen_seed());
+        playerB = module.RandomPlayer.new(BLUE, gen_seed(), gen_seed());
     } else if (player_B == "Naive MC") {
-        playerB = module.NaiveMonteCarlo.new(1, gen_seed(), gen_seed(), time_limit);
+        playerB = module.NaiveMonteCarlo.new(BLUE, gen_seed(), gen_seed(), time_limit);
     } else if (player_B == "UCT MC") {
-        playerB = module.UCTMonteCarlo.new(1, gen_seed(), gen_seed(), time_limit, 1.4, 3, board_size);
+        playerB = module.UCTMonteCarlo.new(BLUE, gen_seed(), gen_seed(), time_limit,
+            UCT_exploration_weight_coeff, UCT_tree_expansion_threshold, board_size);
     } else {
-        playerB = {play: human_player(1)};
+        playerB = {play: human_player(BLUE)};
     }
 
     let gif_recorder = module.GameGifRecorder.new();
     gif_recorder.add_frame(canvas.toDataURL('image/png'));
     while(!separo.is_gameover()) {
-        if(separo.can_move(0)) {
+        if(separo.can_move(RED)) {
             turn_color = "Red";
             separo = await playerR.play(separo);
 
@@ -339,7 +340,7 @@ async function run(module) {
         }
         await sleep(100);
         // -------------------------------------------------------------------
-        if(separo.can_move(1)) {
+        if(separo.can_move(BLUE)) {
             turn_color = "Blue";
             separo = await playerB.play(separo);
 
@@ -349,9 +350,9 @@ async function run(module) {
         await sleep(100);
     }
 
-    var last_score_red  = separo.score(0);
-    var last_score_blue = separo.score(1);
-    var result = "draw!";
+    let last_score_red  = separo.score(RED);
+    let last_score_blue = separo.score(BLUE);
+    let result = "draw!";
     if (last_score_blue < last_score_red) {
         result = "Red wins!";
     } else if (last_score_red < last_score_blue) {
@@ -369,8 +370,8 @@ async function run(module) {
 function drawBoard(context, board, red_name, blue_name, msg) {
 
     const board_state = JSON.parse(board.to_json());
-    const red_score  = board.score(0);
-    const blue_score = board.score(1);
+    const red_score  = board.score(RED);
+    const blue_score = board.score(BLUE);
 
     const stones = board_state["stones"];
     const roots  = board_state["roots"];
@@ -382,13 +383,13 @@ function drawBoard(context, board, red_name, blue_name, msg) {
 
     // show current score
     context.font      = "20px sans-serif"
-    var metrics = context.measureText(" | ");
-    context.fillStyle = stroke_colors[0];
+    let metrics = context.measureText(" | ");
+    context.fillStyle = stroke_colors[RED];
     context.textAlign = "right";
     context.fillText(`${red_name}: ${red_score}`,
                      (canvas_width - metrics.width)/ 2, 40.0);
 
-    context.fillStyle = stroke_colors[1];
+    context.fillStyle = stroke_colors[BLUE];
     context.textAlign = "left";
     context.fillText(`${blue_name}: ${blue_score}`,
                      (canvas_width + metrics.width)/ 2, 40.0);
