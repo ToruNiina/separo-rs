@@ -125,11 +125,11 @@ async function run(module) {
     }
 
     // to check human's move (There should be more sophisticated way...)
-    let is_humans_turn = false;
-    let humans_move    = [null, null, null];
+    let is_humans_turn        = false;
+    let humans_move           = [null, null, null];
     let humans_possible_moves = [];
-    let turn_color     = "Red";
-    let is_canceled = false;
+    let turn_color            = "Red";
+    let is_canceled           = false;
 
     function list_up_possible_moves(board, color) {
         humans_possible_moves = [];
