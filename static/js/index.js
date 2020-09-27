@@ -9,6 +9,8 @@ let stone_radius    =  grid_width * 0.3;
 let scale           = 1.0;
 const stone_stroke  =   2;
 const root_stroke   =   5;
+const RED           =   0;
+const BLUE          =   1;
 
 const board_color   = "rgb(255,255,255)";
 const grid_color    = "rgb(0,0,0)";
@@ -303,28 +305,28 @@ async function run(module) {
     };
 
     if(player_R == "Random") {
-        playerR = module.RandomPlayer.new(0, gen_seed(), gen_seed());
+        playerR = module.RandomPlayer.new(RED, gen_seed(), gen_seed());
     } else if (player_R == "Naive MC") {
-        playerR = module.NaiveMonteCarlo.new(0, gen_seed(), gen_seed(), time_limit);
+        playerR = module.NaiveMonteCarlo.new(RED, gen_seed(), gen_seed(), time_limit);
     } else if (player_R == "UCT MC") {
-        playerR = module.UCTMonteCarlo.new(0, gen_seed(), gen_seed(), time_limit, 1.4, 3, board_size);
+        playerR = module.UCTMonteCarlo.new(RED, gen_seed(), gen_seed(), time_limit, 1.4, 3, board_size);
     } else {
-        playerR = {play: human_player(0)};
+        playerR = {play: human_player(RED)};
     }
     if(player_B == "Random") {
-        playerB = module.RandomPlayer.new(1, gen_seed(), gen_seed());
+        playerB = module.RandomPlayer.new(BLUE, gen_seed(), gen_seed());
     } else if (player_B == "Naive MC") {
-        playerB = module.NaiveMonteCarlo.new(1, gen_seed(), gen_seed(), time_limit);
+        playerB = module.NaiveMonteCarlo.new(BLUE, gen_seed(), gen_seed(), time_limit);
     } else if (player_B == "UCT MC") {
-        playerB = module.UCTMonteCarlo.new(1, gen_seed(), gen_seed(), time_limit, 1.4, 3, board_size);
+        playerB = module.UCTMonteCarlo.new(BLUE, gen_seed(), gen_seed(), time_limit, 1.4, 3, board_size);
     } else {
-        playerB = {play: human_player(1)};
+        playerB = {play: human_player(BLUE)};
     }
 
     let gif_recorder = module.GameGifRecorder.new();
     gif_recorder.add_frame(canvas.toDataURL('image/png'));
     while(!separo.is_gameover()) {
-        if(separo.can_move(0)) {
+        if(separo.can_move(RED)) {
             turn_color = "Red";
             separo = await playerR.play(separo);
 
@@ -333,7 +335,7 @@ async function run(module) {
         }
         await sleep(100);
         // -------------------------------------------------------------------
-        if(separo.can_move(1)) {
+        if(separo.can_move(BLUE)) {
             turn_color = "Blue";
             separo = await playerB.play(separo);
 
@@ -343,8 +345,8 @@ async function run(module) {
         await sleep(100);
     }
 
-    let last_score_red  = separo.score(0);
-    let last_score_blue = separo.score(1);
+    let last_score_red  = separo.score(RED);
+    let last_score_blue = separo.score(BLUE);
     let result = "draw!";
     if (last_score_blue < last_score_red) {
         result = "Red wins!";
@@ -363,8 +365,8 @@ async function run(module) {
 function drawBoard(context, board, red_name, blue_name, msg) {
 
     const board_state = JSON.parse(board.to_json());
-    const red_score  = board.score(0);
-    const blue_score = board.score(1);
+    const red_score  = board.score(RED);
+    const blue_score = board.score(BLUE);
 
     const stones = board_state["stones"];
     const roots  = board_state["roots"];
@@ -377,12 +379,12 @@ function drawBoard(context, board, red_name, blue_name, msg) {
     // show current score
     context.font      = "20px sans-serif"
     let metrics = context.measureText(" | ");
-    context.fillStyle = stroke_colors[0];
+    context.fillStyle = stroke_colors[RED];
     context.textAlign = "right";
     context.fillText(`${red_name}: ${red_score}`,
                      (canvas_width - metrics.width)/ 2, 40.0);
 
-    context.fillStyle = stroke_colors[1];
+    context.fillStyle = stroke_colors[BLUE];
     context.textAlign = "left";
     context.fillText(`${blue_name}: ${blue_score}`,
                      (canvas_width + metrics.width)/ 2, 40.0);
