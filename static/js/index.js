@@ -12,6 +12,9 @@ const root_stroke   =   5;
 const RED           =   0;
 const BLUE          =   1;
 
+const UCT_exploration_weight_coeff = 2.0;
+const UCT_tree_expansion_threshold = 3;
+
 const board_color   = "rgb(255,255,255)";
 const grid_color    = "rgb(0,0,0)";
 const fill_colors   = ['rgba(255,128,128,0.95)', 'rgba(128,128,255,0.95)'];
@@ -309,7 +312,8 @@ async function run(module) {
     } else if (player_R == "Naive MC") {
         playerR = module.NaiveMonteCarlo.new(RED, gen_seed(), gen_seed(), time_limit);
     } else if (player_R == "UCT MC") {
-        playerR = module.UCTMonteCarlo.new(RED, gen_seed(), gen_seed(), time_limit, 1.4, 3, board_size);
+        playerR = module.UCTMonteCarlo.new(RED, gen_seed(), gen_seed(), time_limit,
+            UCT_exploration_weight_coeff, UCT_tree_expansion_threshold, board_size);
     } else {
         playerR = {play: human_player(RED)};
     }
@@ -318,7 +322,8 @@ async function run(module) {
     } else if (player_B == "Naive MC") {
         playerB = module.NaiveMonteCarlo.new(BLUE, gen_seed(), gen_seed(), time_limit);
     } else if (player_B == "UCT MC") {
-        playerB = module.UCTMonteCarlo.new(BLUE, gen_seed(), gen_seed(), time_limit, 1.4, 3, board_size);
+        playerB = module.UCTMonteCarlo.new(BLUE, gen_seed(), gen_seed(), time_limit,
+            UCT_exploration_weight_coeff, UCT_tree_expansion_threshold, board_size);
     } else {
         playerB = {play: human_player(BLUE)};
     }
