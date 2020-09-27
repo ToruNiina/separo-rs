@@ -3,18 +3,15 @@ const canvas_width  = 540;
 const canvas_height = 640;
 const board_margin  =  30;
 const board_width   = 480;
-let board_size   =    9;
-let grid_width   = board_width / (board_size - 1);
-let stone_radius =  grid_width * 0.3;
-let scale = 1.0;
-const stone_stroke =   2;
-const root_stroke  =   5;
+let board_size      =   9;
+let grid_width      = board_width / (board_size - 1);
+let stone_radius    =  grid_width * 0.3;
+let scale           = 1.0;
+const stone_stroke  =   2;
+const root_stroke   =   5;
 
-const board_color = "rgb(255,255,255)";
-const grid_color  = "rgb(0,0,0)";
-
-const red_color  = 0;
-const blue_color = 1;
+const board_color   = "rgb(255,255,255)";
+const grid_color    = "rgb(0,0,0)";
 const fill_colors   = ['rgba(255,128,128,0.95)', 'rgba(128,128,255,0.95)'];
 const stroke_colors = ['rgb(255,0,0)', 'rgb(0,0,255)'];
 
@@ -267,9 +264,7 @@ async function run(module) {
 
     const human_player = function(color) {
         return async function(board) {
-//             console.log("human.play() function started");
             if(!board.can_move(color)) {
-//                 console.log("You cannot move. return.");
                 return board;
             }
             is_humans_turn = true;
@@ -301,7 +296,6 @@ async function run(module) {
                 humans_move = [null, null, null];
                 drawBoard(context, board, player_R, player_B, turn_color + "'s turn");
             }
-//             console.log("done.");
             humans_move    = [null, null, null];
             is_humans_turn = false;
             return board;
